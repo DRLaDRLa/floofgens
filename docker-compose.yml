@@ -81,7 +81,7 @@ services:
       - e621
     ports:
       - "${EXPOSED_SERVER_PORT:-3000}:${EXPOSED_SERVER_PORT:-3000}"
-    
+
   postgres:
     image: postgres:15-alpine
     environment:
@@ -93,7 +93,7 @@ services:
       - ./docker/create_eris_db.sql:/docker-entrypoint-initdb.d/create_eris_db.sql
     ports:
       - "${EXPOSED_POSTGRES_PORT:-34517}:5432"
-  
+
   redis:
     image: redis:7.0.10-alpine
     command: redis-server --save 10 1 --loglevel warning
@@ -128,7 +128,7 @@ services:
     depends_on:
       postgres:
         condition: service_started
-  
+
   datadog-agent:
     image: datadog/agent:7.52.0
     environment:
@@ -140,25 +140,25 @@ services:
     profiles:
       - datadog
 
-  # Discord integration
+  # # Discord integration
 
-  discord_joiner:
-    image: ghcr.io/e621ng/discord_joiner:fdd9563e75d6f1b2b756c032b9749199c08d9765
-    environment:
-      FETCH_SECRET: abc123
-      URL_SECRET: super_secret_for_url_discord
-      JOINER_BASE_URL: http://localhost:8000
-      BOT_TOKEN: ${JOINER_BOT_TOKEN-}
-      OAUTH2_CLIENT_ID: ${JOINER_OAUTH2_CLIENT_ID-}
-      OAUTH2_CLIENT_SECRET: ${JOINER_OAUTH2_CLIENT_SECRET-}
-      GUILD_ID: ${JOINER_GUILD_ID-}
-      FAILED_JOIN_URL: ${JOINER_FAILED_JOIN_WEBHOOK_URL-}
-    ports:
-      - 8000:8000
-    volumes:
-      - discord_joiner_data:/opt/app/data
-    profiles:
-      - discord
+  # discord_joiner:
+  #   image: ghcr.io/e621ng/discord_joiner:fdd9563e75d6f1b2b756c032b9749199c08d9765
+  #   environment:
+  #     FETCH_SECRET: abc123
+  #     URL_SECRET: super_secret_for_url_discord
+  #     JOINER_BASE_URL: http://localhost:8000
+  #     BOT_TOKEN: ${JOINER_BOT_TOKEN-}
+  #     OAUTH2_CLIENT_ID: ${JOINER_OAUTH2_CLIENT_ID-}
+  #     OAUTH2_CLIENT_SECRET: ${JOINER_OAUTH2_CLIENT_SECRET-}
+  #     GUILD_ID: ${JOINER_GUILD_ID-}
+  #     FAILED_JOIN_URL: ${JOINER_FAILED_JOIN_WEBHOOK_URL-}
+  #   ports:
+  #     - 8000:8000
+  #   volumes:
+  #     - discord_joiner_data:/opt/app/data
+  #   profiles:
+  #     - discord
 
   # Useful for development
 
@@ -236,7 +236,7 @@ services:
       - .:/app
       - rubocop_cache:/rubocop_cache
     entrypoint: bundle exec rubocop --cache-root /rubocop_cache
-    profiles: 
+    profiles:
       - rubocop
 
   eslint: &eslint

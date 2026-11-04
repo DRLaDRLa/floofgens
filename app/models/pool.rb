@@ -4,7 +4,7 @@ class Pool < ApplicationRecord
   class RevertError < StandardError
   end
 
-  array_attribute :post_ids, parse: %r{(?:https://(?:e621|e926)\.net/posts/)?(\d+)}i, cast: :to_i
+  array_attribute :post_ids, parse: %r{(?:https://(?:floofgens)\.net/posts/)?(\d+)}i, cast: :to_i
   belongs_to_creator
 
   normalizes :description, with: ->(desc) { desc.gsub("\r\n", "\n") }

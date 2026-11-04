@@ -1,18 +1,18 @@
 <div align="center">
   <img src="public/images/github-logo.svg" width="150" height="150" align="left">
   <div align="left">
-    <h3>E621</h3>
-    <a href="https://github.com/e621ng/e621ng/releases">
-      <img src="https://img.shields.io/github/v/release/e621ng/e621ng?label=version&style=flat-square" alt="Releases" />
+    <h3>floofgens</h3>
+    <a href="https://github.com/DRLaDRLa/floofgens/releases">
+      <img src="https://img.shields.io/github/v/release/DRLaDRLa/floofgens?label=version&style=flat-square" alt="Releases" />
     </a><br />
-    <a href="https://github.com/e621ng/e621ng/issues">
-      <img src="https://img.shields.io/github/issues/e621ng/e621ng?label=open%20issues&style=flat-square" alt="Issues" />
+    <a href="https://github.com/DRLaDRLa/floofgens/issues">
+      <img src="https://img.shields.io/github/issues/DRLaDRLa/floofgens?label=open%20issues&style=flat-square" alt="Issues" />
     </a><br />
-    <a href="https://github.com/e621ng/e621ng/pulls">
-      <img src="https://img.shields.io/github/issues-pr/e621ng/e621ng?style=flat-square" alt="Pull Requests" />
+    <a href="https://github.com/DRLaDRLa/floofgens/pulls">
+      <img src="https://img.shields.io/github/issues-pr/DRLaDRLa/floofgens?style=flat-square" alt="Pull Requests" />
     </a><br />
-    <a href="https://github.com/e621ng/e621ng/commits/master/">
-      <img src="https://img.shields.io/github/check-runs/e621ng/e621ng/master?style=flat-square" alt="GitHub branch check runs" />
+    <a href="https://github.com/DRLaDRLa/floofgens/commits/master/">
+      <img src="https://img.shields.io/github/check-runs/DRLaDRLa/floofgens/master?style=flat-square" alt="GitHub branch check runs" />
     </a><br />
   </div>
 </div>
@@ -26,14 +26,14 @@
  * Latest version of Docker ([download](https://docs.docker.com/get-docker)).
  * Latest version of Docker Compose ([download](https://docs.docker.com/compose/install))
  * Git ([download](https://git-scm.com/downloads))
- 
+
  If you are on Windows Docker Compose is already included, you do not need to install it yourself.
  If you are on Linux/MacOS you can probably use your package manager.
 
 ### Installation
 
 1. Download and install the [prerequisites](#prerequisites).
-1. Clone the repo with `git clone https://github.com/e621ng/e621ng.git`.
+1. Clone the repo with `git clone https://github.com/DRLaDRLa/floofgens.git`.
 1. `cd` into the repo.
 1. Copy the sample environment file with `cp .env.sample .env`.
 1. WSL Only: Run the following commands:
@@ -41,7 +41,7 @@
     git config core.fileMode false
     cp -ru hooks/ .git
     ```
-    This will resolve permission issues, and set up a hook that will reset file permissions to what they are supposed to be in the future.  
+    This will resolve permission issues, and set up a hook that will reset file permissions to what they are supposed to be in the future.
     If you are not using WSL, this is likely not a problem for you.
 1. Run the following commands:
     ```
@@ -52,9 +52,9 @@
 1. To confirm the installation worked, open the web browser of your choice and enter `http://localhost:3000` into the address bar and see if the website loads correctly. An admin account has been created automatically, the username and password are `admin` and `hexerade` respectively.
 1. By default, the site will lack any content. For testing purposes, you can generate some using the following command:
     ```
-    docker exec -it e621ng-e621-1 /app/bin/populate
+    docker exec -it floofgens-e621-1 /app/bin/populate
     ```
-    The command can be run multiple times to generate more content.  
+    The command can be run multiple times to generate more content.
     \
     [Environmental variables](/db/populate.rb#L9-L22) are available to customize what kind of content is generated.
 
@@ -67,14 +67,14 @@ You are recommended to reconsider and rethink your life choices.
 
 If you are sure that you want to do this, follow these steps.
 
-1. Clone the repo into a `vendor` directory. Example: `~/e621ng/vendor/dtext/`.
-   1. `cd ~/e621ng`
+1. Clone the repo into a `vendor` directory. Example: `~/floofgens/vendor/dtext/`.
+   1. `cd ~/floofgens`
    2. `mkdir vendor && cd vendor`
    3. `git clone https://github.com/e621ng/dtext.git` (substitute your local fork as needed)
 2. Rebuild the container
-   1. `cd ~/e621ng`
+   1. `cd ~/floofgens`
    2. `docker compose build --no-cache`
-3. Reset the Gemfile.lock: `git checkout HEAD -- Gemfile.lock`  
+3. Reset the Gemfile.lock: `git checkout HEAD -- Gemfile.lock`
   This is not required, but it will prevent you from accidentally committing bad changes.
 4. Set `LOCAL_DTEXT=true` in the `.env` file.
 
@@ -104,7 +104,7 @@ You're most likely using Windows. Give this a shot, it tells Git to stop trackin
 
 #### TrueNAS / Local Server Installation
 
-If you decide to deploy this docker image to an external / local server, you do need to remember to change the DANBOORU_HOST variable in the docker-compose.yml file to the IP of your server. Otherwise, you will not be able to access it, or the image links will be broken. 
+If you decide to deploy this docker image to an external / local server, you do need to remember to change the DANBOORU_HOST variable in the docker-compose.yml file to the IP of your server. Otherwise, you will not be able to access it, or the image links will be broken.
 
 Specifically for TrueNAS/NAS boxes users: you need to use the shell itself to set the repo up, you can then manage the images/variable/config with Portainer/Dockge after it's set up.
 

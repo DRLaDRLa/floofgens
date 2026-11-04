@@ -9,7 +9,7 @@ module Danbooru
 
     # The name of this Danbooru.
     def app_name
-      "e621"
+      "floofgens"
     end
 
     def server_name
@@ -17,11 +17,11 @@ module Danbooru
     end
 
     def description
-      "Find good furry art, fast"
+      "floofgens"
     end
 
     def domain
-      "e621.net"
+      "floofgens"
     end
 
     # Force rating:s on this version of the site.
@@ -58,7 +58,7 @@ module Danbooru
     end
 
     def source_code_url
-      "https://github.com/e621ng/e621ng"
+      "https://github.com/DRLaDRLa/floofgens"
     end
 
     # Stripped of any special characters.
@@ -91,7 +91,16 @@ module Danbooru
     end
 
     def default_blacklist
-      []
+      [
+        "# Violence",
+        "gore",
+        "snuff",
+        "rape",
+        "# Fetish",
+        "feces",
+        "urine",
+        "fart",
+      ]
     end
 
     # Autocomplete results matching these regular expressions will not be displayed.
@@ -129,7 +138,7 @@ module Danbooru
     end
 
     def default_bg_color
-      "152f56"
+      "222222"
     end
 
     # Thumbnail size
@@ -335,7 +344,7 @@ module Danbooru
 
     # User bypasses the approval queue once they reach this upload karma level. Set to nil to disable.
     def upload_karma_free_threshold
-      1
+      nil
     end
 
     # Base number of concurrent queued uploads a below-threshold user may have.
@@ -495,6 +504,7 @@ module Danbooru
     end
 
     def discord_site
+      "https://discord.gg/pc6u6jCnrD"
     end
 
     def discord_secret
@@ -611,7 +621,7 @@ module Danbooru
     # * `:users`: Also visible to all logged-in users
     # * `:all`: Also visible to everyone (including anonymous users)
     def flag_reason_visibility
-      :staff
+      :uploader
     end
 
     def deletion_reasons
@@ -624,10 +634,16 @@ module Danbooru
         "Underage artist",
         "",
         "Does not meet minimum quality standards (Artistic)",
+        "Does not meet minimum quality standards (Anatomical anomalies)",
+        "Does not meet minimum quality standards (Artifacting or Color Anomalies)",
+        "Does not meet minimum quality standards (Attempted Signature)",
+        "Does not meet minimum quality standards (Text and Lettering Errors)",
+        "Does not meet minimum quality standards (Poor Details On Focus Items)",
         "Does not meet minimum quality standards (Resolution)",
         "Does not meet minimum quality standards (Compression)",
         "Does not meet minimum quality standards (Trivial or low quality edit)",
         "Does not meet minimum quality standards (Bad digitization of traditional media)",
+        "Does not meet minimum quality standards (Poor use of AI upscaling)",
         "Does not meet minimum quality standards (%OTHER_ID%)",
         "Broken/corrupted file",
         "JPG resaved as PNG",
@@ -640,10 +656,14 @@ module Danbooru
         "Irrelevant to site (AI assisted/generated)",
         "Irrelevant to site (%OTHER_ID%)",
         "Young [[human]]-[[humanoid|like]] character in an explicit situation",
+        "Young character in an explicit situation",
+        "Anything explicit that, at a glance, could be mistaken for a photograph is not allowed",
+        "Photo-realistic human face pictured",
         "",
         "Paysite/commercial content",
         "Trace of another artist's work",
         "Trace of another artist's work (post #%PARENT_ID%)",
+        "Img2Img of another artist's work",
         "Takedown #%OTHER_ID%",
         "The artist of this post is on the \"avoid posting list\":/static/avoid_posting",
         "[[conditional_dnp|Conditional DNP]] (Only the artist is allowed to post)",
@@ -700,39 +720,75 @@ module Danbooru
       {
         default: {
           title: "Post #%POST_ID% has been deleted",
-          body: "Post #%POST_ID% was deleted by \"%STAFF_NAME%\":[/users/%STAFF_ID%] for the following reason(s):
+          body: "Your post #%POST_ID% was rejected by \"%STAFF_NAME%\":[/users/%STAFF_ID%] for violating our \"Upload Guidelines\":[/help/uploading_guidelines].
+
+h5. Reason for rejection:
+
 [quote]
 %REASON%
 [/quote]
 
-This is a courtesy notification; you don't need to take further action if you don't want to.
+h5. What can I do now?
 
-If you would like to contest the deletion, click \"this link\":[/appeals/new?disp_id=%FLAG_ID%&qtype=flag].
+[b]Fix & Replace[/b]: Follow the \"Replacement Instructions\":[/help/replacements] or re-upload the corrected version (Need help? Check out the #gen-help channel on our \"official Discord\":[/static/discord]).
 
-You can see a list of your deleted posts \"here\":[/deleted_posts?user_id=%UPLOADER_ID%]; you can access this at any time by going to \"your profile page\":[/users/%UPLOADER_ID%] & selecting the `deleted` tab on the `Upload` pane, or you can search {{user:!%UPLOADER_ID% status:deleted}}.",
+[b]Appeal[/b]: If you believe this was a mistake, please click \"here\":[/appeals/new?disp_id=%FLAG_ID%&qtype=flag] to submit an appeal (\"instructions\":[/help/appeals]). If you are not satisfied with the interaction, see the \"Dispute Procedure\":[/static/code_of_conduct#disputingstaffactions] page.
+
+If you have any questions, please \"DM the staff member\":[/dmails/new?dmail%5Bto_id%5D=%STAFF_ID%&dmail%5Btitle%5D=About+deleted+post+%23%POST_ID%].",
         },
-        DNP: {
+        appeal_only: {
           title: "Post #%POST_ID% has been deleted",
-          body: "Post #%POST_ID% was deleted by \"%STAFF_NAME%\":[/users/%STAFF_ID%] for the following reason(s):
+          body: "Your post #%POST_ID% was rejected by \"%STAFF_NAME%\":[/users/%STAFF_ID%] for violating our \"Upload Guidelines\":[/help/uploading_guidelines].
+
+h5. Reason for rejection:
+
 [quote]
 %REASON%
 [/quote]
 
-DNP content like this is not allowed on this site without receiving preemptive and direct permission from the artist. If you have such permission (or are the artist), you may \"DMail %STAFF_NAME%\":[/dmails/new?dmail%5Bto_id%5D=%STAFF_ID%&dmail%5Btitle%5D=Appeal%3A+Permission+to+post+%23%POST_ID%] to discuss restoring the post.
+h5. What can I do now?
 
-Please note that repeatedly uploading DNP material without permission can & will result in any or all of the following:
-* Receiving records
-* Losing uploading privileges (temporarily or permanently)
-* Site bans (temporary & permanent)
+[b]Appeal[/b]: If you believe this was a mistake, please click \"here\":[/appeals/new?disp_id=%FLAG_ID%&qtype=flag] to submit an appeal (\"instructions\":[/help/appeals]). If you are not satisfied with the interaction, see the \"Dispute Procedure\":[/static/code_of_conduct#disputingstaffactions] page.
 
-You can see a list of your deleted posts \"here\":[/deleted_posts?user_id=%UPLOADER_ID%]; you can access this at any time by going to \"your profile page\":[/users/%UPLOADER_ID%] & selecting the `deleted` tab on the `Upload` pane, or you can search {{user:!%UPLOADER_ID% status:deleted}}.",
+If you have any questions, please \"DM the staff member\":[/dmails/new?dmail%5Bto_id%5D=%STAFF_ID%&dmail%5Btitle%5D=About+deleted+post+%23%POST_ID%].",
+        },
+        prompt_spam: {
+          title: "Post #%POST_ID% has been deleted",
+          body: "Your post #%POST_ID% was rejected by \"%STAFF_NAME%\":[/users/%STAFF_ID%] for violating our policy on \"Prompt Spam\":[/help/uploading_guidelines#bad:~:text=Prompt%20spam].
+
+h5. Reason for rejection:
+[quote]
+%REASON%
+[/quote]
+
+h5. What does this mean?
+
+To maintain gallery variety, please limit posts to no more than 3 similar versions. A lower limit may be enforced at staff discretion.
+
+h5. What can I do now?
+
+[b]Appeal[/b]: If you believe these posts were distinct enough to warrant inclusion, please click \"here\":[/appeals/new?disp_id=%FLAG_ID%&qtype=flag] to submit an appeal (\"instructions\":[/help/appeals]). If you are not satisfied with the interaction, see the \"Dispute Procedure\":[/static/code_of_conduct#disputingstaffactions] page.
+
+If you have any questions, please \"DM the staff member\":[/dmails/new?dmail%5Bto_id%5D=%STAFF_ID%&dmail%5Btitle%5D=About+deleted+post+%23%POST_ID%].",
+        },
+        follow_up: {
+          title: "Rejection reason for post #%POST_ID% was updated",
+          body: "The rejection reason for your post \"#%POST_ID%\":[/posts/%POST_ID%] has been updated by \"%STAFF_NAME%\":[/users/%STAFF_ID%].
+
+h5. Updated reason for rejection:
+
+[quote]
+%REASON%
+[/quote]
+
+If you have questions regarding this change, please \"DM the staff member\":[/dmails/new?dmail%5Bto_id%5D=%STAFF_ID%&dmail%5Btitle%5D=About+deleted+post+%23%POST_ID%].",
         },
       }
     end
 
     # If true, the post deletion DMail will be enabled by default.
     def enable_post_deletion_dmail
-      false
+      true
     end
 
     # The number of records displayed per page. Posts use `user.per_page` which is configurable by the user
@@ -811,7 +867,7 @@ You can see a list of your deleted posts \"here\":[/deleted_posts?user_id=%UPLOA
     end
 
     def mail_from_addr
-      "E621.net <noreply@e621.net>"
+      "blep-art.net <noreply@blep-art.net>"
     end
 
     # disable this for tests

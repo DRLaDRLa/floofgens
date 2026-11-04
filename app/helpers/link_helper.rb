@@ -2,6 +2,7 @@
 
 module LinkHelper
   DECORATABLE_DOMAINS = [
+    "floofgens.net",
     "e621.net",
     #
     # Aggregators
@@ -37,6 +38,13 @@ module LinkHelper
     "yiff.life",
     "weasyl.com",
     "webtoons.com",
+    # AI Art sites
+    "civitai.com",
+    "civitai.red",
+    "crushon.ai",
+    "frosting.ai",
+    "pixai.art",
+    "tantabus.ai",
     #
     # Social media
     "aethy.com",
@@ -129,7 +137,7 @@ module LinkHelper
     "curiouscat.live" => "curiouscat.me",
     "derpiboo.ru" => "derpibooru.org",
     "discord.gg" => "discord.com",
-    "e926.net" => "e621.net",
+    "floofgens.net" => "e621.net",
     "exhentai.org" => "e-hentai.org",
     "fav.me" => "deviantart.com",
     "hath.network" => "e-hentai.org",

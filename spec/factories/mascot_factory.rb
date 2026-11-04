@@ -5,7 +5,7 @@ FactoryBot.define do
     sequence(:display_name) { |n| "Test Mascot #{n}" }
     sequence(:md5)          { |n| Digest::MD5.hexdigest("mascot_#{n}") }
     file_ext                { "png" }
-    background_color        { "#012e57" }
+    background_color        { "#1F1F1F" }
     foreground_color        { "#0f0f0f80" }
     artist_url              { "https://www.example.com/artist" }
     artist_name             { "Test Artist" }

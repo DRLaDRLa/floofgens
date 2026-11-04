@@ -1,5 +1,5 @@
 {
-  "name": "e621",
+  "name": "floofgens",
   "icons": [
     {
       "src": "/android-chrome-192x192.png",
@@ -12,8 +12,8 @@
       "type": "image/png"
     }
   ],
-  "theme_color": "#00549e",
-  "background_color": "#021131",
+  "theme_color": "#ffee95",
+  "background_color": "#1F1F1F",
   "display": "standalone",
   "start_url": "./"
 }

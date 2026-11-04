@@ -1,12 +1,13 @@
 import NoteManager from "@/pages/posts/show/notes";
 import ToolbarFavorites from "@/pages/posts/show/toolbar/Favorites";
+import ToolbarPrompt from "@/pages/posts/show/toolbar/Prompt";
 import ToolbarVoting from "@/pages/posts/show/toolbar/Voting";
 import Offclick, { OffclickEntry } from "@/utility/Offclick";
 import ToastManager from "@/utility/Toast";
 
 /**
  * Entry point for the toolbar underneath the post image.
- * Owns the voting and favorites modules, and wires the notes toggle, share, and overflow menus.
+ * Owns the voting, favorites, and prompt modules, and wires the notes toggle, share, and overflow menus.
  */
 export default class PostsShowToolbar {
 
@@ -23,6 +24,7 @@ export default class PostsShowToolbar {
 
   public static get Voting (): ToolbarVoting { return ToolbarVoting.instance; }
   public static get Favorites (): ToolbarFavorites { return ToolbarFavorites.instance; }
+  public static get Prompt (): ToolbarPrompt { return ToolbarPrompt.instance; }
 
 
   /* ============================== */
@@ -42,6 +44,7 @@ export default class PostsShowToolbar {
 
     void ToolbarVoting.instance;
     void ToolbarFavorites.instance;
+    void ToolbarPrompt.instance;
     this.initNotesToggle();
     this.initOverflowMenu();
     this.initShareMenu();

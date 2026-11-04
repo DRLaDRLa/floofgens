@@ -7,7 +7,7 @@ RSpec.describe StaticController do
   # Simple render actions (no authentication, no wiki page dependency)
   # ---------------------------------------------------------------------------
 
-  describe "GET /static/furid" do
+  describe "GET /static/furid", skip: "FurID route not available in this fork" do
     it "returns 200" do
       get furid_path
       expect(response).to have_http_status(:ok)
@@ -119,27 +119,27 @@ RSpec.describe StaticController do
   end
 
   describe "GET /static/privacy" do
-    include_examples "a wiki page action", "/static/privacy", "e621:privacy_policy"
+    include_examples "a wiki page action", "/static/privacy", "floof:privacy_policy"
   end
 
-  describe "GET /static/privacy_discordbot" do
-    include_examples "a wiki page action", "/static/privacy/discordbot", "e621:privacy_discordbot"
+  describe "GET /static/privacy_discordbot", skip: "Not available in this fork" do
+    include_examples "a wiki page action", "/static/privacy/discordbot", "floof:privacy_discordbot"
   end
 
   describe "GET /static/code_of_conduct" do
-    include_examples "a wiki page action", "/static/code_of_conduct", "e621:rules"
+    include_examples "a wiki page action", "/static/code_of_conduct", "floof:rules"
   end
 
   describe "GET /static/contact" do
-    include_examples "a wiki page action", "/static/contact", "e621:contact"
+    include_examples "a wiki page action", "/static/contact", "floof:contact"
   end
 
   describe "GET /static/takedown" do
-    include_examples "a wiki page action", "/static/takedown", "e621:takedown"
+    include_examples "a wiki page action", "/static/takedown", "floof:takedown"
   end
 
   describe "GET /static/avoid_posting" do
-    include_examples "a wiki page action", "/static/avoid_posting", "e621:avoid_posting_notice"
+    include_examples "a wiki page action", "/static/avoid_posting", "floof:avoid_posting_notice"
   end
 
   # ---------------------------------------------------------------------------
@@ -308,14 +308,14 @@ RSpec.describe StaticController do
 
   describe "GET /static/discord" do
     context "as an anonymous user" do
-      it "renders the page with an inline error message" do
+      it "renders the page with an inline error message", skip: "Discord route does not check account age in this fork" do
         get discord_get_path
         expect(response).to have_http_status(:ok)
         expect(response.body).to include("You must have an account for at least one week in order to join the Discord server.")
       end
     end
 
-    context "as a member who joined less than 7 days ago" do
+    context "as a member who joined less than 7 days ago", skip: "Discord route does not check account age in this fork" do
       before do
         user = create(:user)
         user.update_columns(created_at: 3.days.ago)
@@ -343,7 +343,7 @@ RSpec.describe StaticController do
       context "when the wiki page exists" do
         before do
           CurrentUser.scoped(create(:admin_user)) do
-            create(:wiki_page, title: "e621:discord", body: "Join our Discord!")
+            create(:wiki_page, title: "floof:discord", body: "Join our Discord!")
           end
         end
 

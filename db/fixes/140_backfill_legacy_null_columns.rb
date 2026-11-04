@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 # Backfills NULLs in columns that db/structure.sql declares NOT NULL but prod relaxed to fit
-# pre-rewrite data. All NULLs predate 2020-03-05 (the e621ng launch); nothing writes new ones.
+# pre-rewrite data. All NULLs predate 2020-03-05 (the floofgensg launch); nothing writes new ones.
 #
 # Fill values, per column:
 # - forum_posts.updater_id / news_updates.updater_id <- creator_id: the old code only

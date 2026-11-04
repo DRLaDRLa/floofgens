@@ -128,7 +128,7 @@ class Takedown < ApplicationRecord
     end
 
     def matching_post_ids(input)
-      input.scan(%r{(?:https://(?:e621|e926)\.net/posts/)?(\d+)}i).flatten.map(&:to_i).uniq
+      input.scan(%r{(?:https://(?:floofgens)\.net/posts/)?(\d+)}i).flatten.map(&:to_i).uniq
     end
   end
 

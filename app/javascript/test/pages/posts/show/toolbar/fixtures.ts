@@ -64,20 +64,26 @@ export function renderToolbarPage ({
       <div class="ptbr-notes">
         <button class="ptbr-notes-button" enabled="true" aria-pressed="false">Notes</button>
       </div>
+      <div class="ptbr-prompt">
+        <button class="ptbr-prompt-button">Prompt</button>
+      </div>
       <div class="ptbr-etc">
         <button class="ptbr-etc-toggle" aria-expanded="false" aria-controls="ptbr-etc-menu">More</button>
         <div class="ptbr-etc-menu hidden" id="ptbr-etc-menu" role="menu">
           <a href="/download" class="ptbr-etc-download">Download</a>
           <button class="ptbr-share-button">Share</button>
+          <button class="ptbr-prompt-button">Prompt</button>
           <button class="ptbr-etc-pool">Add to Pool</button>
           <button class="ptbr-etc-set">Add to Set</button>
         </div>
       </div>
     </section>
 
+    <div id="gen-info-container" class="styled-dtext"></div>
+
     <section id="ptbr-share-menu" class="hidden">
-      <input type="text" class="ptbr-share-link" readonly value="https://e621.net/posts/${POST_ID}" />
-      <button class="ptbr-share-copy" data-value="https://e621.net/posts/${POST_ID}">Copy</button>
+      <input type="text" class="ptbr-share-link" readonly value="https://floofgens.net/posts/${POST_ID}" />
+      <button class="ptbr-share-copy" data-value="https://floofgens.net/posts/${POST_ID}">Copy</button>
     </section>
   `;
 }

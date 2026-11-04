@@ -1,8 +1,8 @@
 # Individual Contributor License Agreement (CLA)
 
-Thank you for your interest in contributing to e621 ("We" or "Us").
+Thank you for your interest in contributing to floofgens ("We" or "Us").
 
-This Contributor License Agreement ("Agreement") aims to clarify and document the rights granted by individual contributors ("You") to Us for contributions made to our project. This Agreement applies to contributions submitted to Us via pull requests or any other submission method. For instructions, please visit: https://github.com/e621ng/e621ng/pulls
+This Contributor License Agreement ("Agreement") aims to clarify and document the rights granted by individual contributors ("You") to Us for contributions made to our project. This Agreement applies to contributions submitted to Us via pull requests or any other submission method. For instructions, please visit: https://github.com/DRLaDRLa/floofgens/pulls
 
 ## 0. Preamble
 Free and Open Source Software plays an integral role in our daily lives. It provides the freedom to use, modify, understand, and share software. These freedoms support other fundamental rights, such as freedom of speech and privacy.

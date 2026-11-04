@@ -17,8 +17,8 @@ class TakedownsController < ApplicationController
   end
 
   def new
-    @wiki = WikiPage.titled("e621:takedown_new")
-    @wiki = WikiPage.new(body: "Wiki page \"e621:takedown_new\" not found.") if @wiki.blank?
+    @wiki = WikiPage.titled("floof:takedown_new")
+    @wiki = WikiPage.new(body: "Wiki page \"floof:takedown_new\" not found.") if @wiki.blank?
 
     @takedown = Takedown.new
     respond_with(@takedown)
@@ -32,8 +32,8 @@ class TakedownsController < ApplicationController
     @takedown = Takedown.create(takedown_params)
     flash[:notice] = @takedown.errors.count > 0 ? @takedown.errors.full_messages.join(". ") : "Takedown created"
     if @takedown.errors.count > 0
-      @wiki = WikiPage.titled("e621:takedown_new")
-      @wiki = WikiPage.new(body: "Wiki page \"e621:takedown_new\" not found.") if @wiki.blank?
+      @wiki = WikiPage.titled("floof:takedown_new")
+      @wiki = WikiPage.new(body: "Wiki page \"floof:takedown_new\" not found.") if @wiki.blank?
       respond_with(@takedown)
     else
       redirect_to(takedown_path(id: @takedown.id, code: @takedown.vericode))

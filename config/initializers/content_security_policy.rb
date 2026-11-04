@@ -14,23 +14,23 @@ Rails.application.configure do
     # legacy CSP2 browsers that ignore strict-dynamic.
 
     # TODO: Temporarily disabled. Re-enable after resolving the issue with CF email obfuscation breaking upon the CSP.
-    policy.script_src :self, :strict_dynamic, "rv.e621.net", "https://challenges.cloudflare.com", "https://assets.freespeechcoalition.com", "https://op.dragonfru.it/"
+    policy.script_src :self, :strict_dynamic, "https://challenges.cloudflare.com", "https://assets.freespeechcoalition.com"
     policy.script_src(*policy.script_src, :unsafe_eval) if Rails.env.development?
 
     policy.style_src :self, :unsafe_inline
     policy.style_src(*policy.style_src, :unsafe_inline) if Rails.env.development?
 
-    policy.connect_src :self, "rv.e621.net", "op.dragonfru.it", "static1.e621.net", "static1.e926.net", "api.freespeechcoalition.com"
+    policy.connect_src :self, "static1.floofgens.net", "api.freespeechcoalition.com"
     policy.connect_src(*policy.connect_src, "ws://localhost:3036", "http://localhost:3036", "http://host.docker.internal:8000") if Rails.env.development?
 
-    policy.object_src  :self, "static1.e621.net", "static1.e926.net"
-    policy.media_src   :self, "static1.e621.net", "static1.e926.net"
+    policy.object_src  :self, "static1.floofgens.net"
+    policy.media_src   :self, "static1.floofgens.net"
     policy.frame_ancestors :none
     policy.frame_src   "https://challenges.cloudflare.com"
     policy.font_src    :self
-    policy.img_src     :self, :data, "static1.e621.net", "static1.e926.net", "rv.e621.net"
+    policy.img_src     :self, :data, "static1.floofgens.net"
     policy.child_src   :none
-    policy.form_action :self, "discord.e621.net", "discord.com"
+    policy.form_action :self
     # Specify URI for violation reports
     # policy.report_uri "/csp-violation-report-endpoint"
   end

@@ -77,7 +77,7 @@
     Posted: <%= link_to time_ago_in_words_tagged(post.created_at), posts_path(tags: "date:#{post.created_at.to_date}"), rel: "nofollow" %>
     <meta itemprop="uploadDate" content="<%= post.created_at.iso8601 %>">
   </li>
-  <% if CurrentUser.is_staff? || post.uploader_linked_artists.any? %>
+  <% if CurrentUser.is_member? || post.uploader_linked_artists.any? %>
     <li>
       Uploader: <%= link_to_user(post.uploader) %> <%= render(UserFeedbackComponent.new(user: post.uploader, style: :inline)) if CurrentUser.is_staff? %>
       <% if post.uploader_linked_artists.any? %>

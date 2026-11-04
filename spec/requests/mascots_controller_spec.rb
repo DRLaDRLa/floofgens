@@ -125,7 +125,7 @@ RSpec.describe MascotsController do
         mascot: {
           mascot_file:      mascot_file,
           display_name:     "My Mascot",
-          background_color: "#012e57",
+          background_color: "#1F1F1F",
           foreground_color: "#0f0f0f80",
           artist_url:       "https://www.example.com/artist",
           artist_name:      "Test Artist",

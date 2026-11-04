@@ -120,7 +120,7 @@
             role="content"
             field-id="post_content"
             :order="5"
-            placeholder="Ex: young gore scat watersports diaper my_little_pony vore not_furry rape hyper etc."
+            placeholder="Ex: gore scat watersports diaper my_little_pony vore not_furry rape hyper etc."
           ></tag-textarea>
         </div>
       </div>

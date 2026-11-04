@@ -71,7 +71,7 @@ end
 
 def setup_upload_whitelist
   UploadWhitelist.create do |entry|
-    entry.domain = "static1\.e621\.net" # rubocop:disable Style/RedundantStringEscape
+    entry.domain = "static1\.floofgens.net" # rubocop:disable Style/RedundantStringEscape
   end
 end
 
@@ -83,7 +83,7 @@ def setup_flag_reasons
   PostFlagReason.create!(
     name: "uploading_guidelines",
     reason: "Does not meet the [[uploading_guidelines|uploading guidelines]]",
-    text: "This post fails to meet the site's standards, be it for artistic worth, image quality, relevancy, or something else.\nKeep in mind that your personal preferences have no bearing on this. If you find the content of a post objectionable, simply [[e621:blacklist|blacklist]] it.",
+    text: "This post fails to meet the site's standards, be it for artistic worth, image quality, relevancy, or something else.\nKeep in mind that your personal preferences have no bearing on this. If you find the content of a post objectionable, simply [[floof:blacklist|blacklist]] it.",
     needs_explanation: true,
     needs_staff_reason: true,
     target_date: Time.zone.local(2015, 1, 1),

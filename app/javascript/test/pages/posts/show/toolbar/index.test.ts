@@ -117,7 +117,7 @@ describe("PostsShowToolbar", () => {
       $(".ptbr-share-copy").trigger("click");
       await flush();
 
-      expect(writeText).toHaveBeenCalledWith(`https://e621.net/posts/${POST_ID}`);
+      expect(writeText).toHaveBeenCalledWith(`https://floofgens.net/posts/${POST_ID}`);
       expect(toast.notice).toHaveBeenCalledWith("Link copied to clipboard.");
       expect(toast.alert).not.toHaveBeenCalled();
     });

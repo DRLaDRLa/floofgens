@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 # This script populates the database with random data for testing or development purposes.
-# Usage: docker exec -it e621ng-e621-1 /app/bin/populate
+# Usage: docker exec -it floofgens-e621-1 /app/bin/populate
 
 require "faker"
 
