@@ -1,0 +1,105 @@
+<% results = import.results %>
+<% profile_text = {
+     "restored" => "restored", "replaced" => "replaced with the backup's", "kept_existing" => "kept yours",
+     "unchanged" => "already the same", "empty_in_backup" => "empty in the backup", "none_in_backup" => "none in the backup",
+     "post_missing" => "skipped: post not on this site", "post_deleted" => "skipped: post is deleted"
+   } %>
+
+<% if import.is_completed? %>
+  <div class="box-section background-green"><p>Import finished.</p></div>
+<% else %>
+  <div class="box-section background-red">
+    <p><%= import.error_message.presence || "The import failed." %></p>
+    <% if import.needs_reupload? %>
+      <p><%= Maintenance::User::DataImportsController::REUPLOAD_MESSAGE %></p>
+      <p><%= link_to "Upload the backup again", new_maintenance_user_data_import_path %></p>
+    <% elsif (other = import.other_open_import) %>
+      <p><%= Maintenance::User::DataImportsController::BUSY_MESSAGE %> <%= link_to "Go to it", maintenance_user_data_import_path(other) %></p>
+    <% elsif import.resumable? %>
+      <%= button_to "Resume import", resume_maintenance_user_data_import_path(import), method: :post %>
+    <% end %>
+  </div>
+<% end %>
+
+<% if import.import_favorites %>
+  <h2>Favorites</h2>
+  <table class="striped autofit">
+    <tbody>
+      <tr><td>Added</td><td><%= results.dig("favorites", "imported").to_i %></td></tr>
+      <tr><td>Already in your favorites before the import</td><td><%= results.dig("baseline", "favorites_already").to_i %></td></tr>
+      <% if import.phase_done?("favorites") %>
+        <tr><td>Posts not on this site (skipped)</td><td><%= results.dig("favorites", "missing").to_a.size %></td></tr>
+      <% end %>
+      <% unavailable = results.dig("favorites", "busy").to_a + results.dig("favorites", "unavailable").to_a %>
+      <% if unavailable.any? %>
+        <tr><td>Posts temporarily unavailable (import again later)</td><td><%= unavailable.size %></td></tr>
+      <% end %>
+    </tbody>
+  </table>
+<% end %>
+
+<% if import.import_sets %>
+  <h2>Sets</h2>
+  <% created = results.dig("sets", "created").to_h %>
+  <% merged = results.dig("sets", "merged").to_h %>
+  <% failed = results.dig("sets", "failed").to_h %>
+  <% if created.empty? && merged.empty? && failed.empty? %>
+    <p>No sets were restored.</p>
+  <% else %>
+    <table class="striped">
+      <thead><tr><th>Set</th><th>Result</th><th>Posts not on this site</th></tr></thead>
+      <tbody>
+        <% created.each_value do |set| %>
+          <tr>
+            <td><%= link_to set["name"], post_set_path(set["post_set_id"]) %></td>
+            <td>
+              <%= safe_join(["Created with #{set['posts']} posts",
+                             ("renamed because the name was taken" if set["renamed"]),
+                             ("private until your account is 3 days old" if set["made_private"])].compact, "; ") %>
+            </td>
+            <td><%= set["missing"] %></td>
+          </tr>
+        <% end %>
+        <% merged.each_value do |set| %>
+          <tr>
+            <td><%= link_to set["name"], post_set_path(set["post_set_id"]) %></td>
+            <td>Already restored earlier; <%= set["recovered"] %> missing posts added</td>
+            <td><%= set["still_missing"] %></td>
+          </tr>
+        <% end %>
+        <% failed.each_value do |set| %>
+          <tr>
+            <td><%= set["name"] %></td>
+            <td>Not restored: <%= Array(set["errors"]).join(", ") %></td>
+            <td></td>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
+  <% end %>
+<% end %>
+
+<% if import.import_profile && results["profile"].present? %>
+  <h2>Profile</h2>
+  <% if results.dig("profile", "error") %>
+    <p>Your profile couldn't be updated: <%= Array(results.dig("profile", "error")).join(", ") %></p>
+  <% else %>
+    <table class="striped autofit">
+      <tbody>
+        <tr><td>About me</td><td><%= profile_text[results.dig("profile", "about")] %></td></tr>
+        <tr><td>Artist info</td><td><%= profile_text[results.dig("profile", "artinfo")] %></td></tr>
+        <tr>
+          <td>Avatar</td>
+          <td>
+            <%= profile_text[results.dig("profile", "avatar")] %>
+            <% if results.dig("profile", "avatar_was_cropped") %>
+              — it was cropped in the backup; <%= link_to "crop it again", edit_maintenance_user_avatar_path %>
+            <% end %>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  <% end %>
+<% end %>
+
+<p><%= link_to "Full report (JSON)", maintenance_user_data_import_path(import, format: :json) %></p>

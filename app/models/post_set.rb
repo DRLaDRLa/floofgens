@@ -3,6 +3,8 @@
 class PostSet < ApplicationRecord
   class PostLimitError < StandardError; end
 
+  MAX_SETS_PER_USER = 75
+
   array_attribute :post_ids, parse: %r{(?:https://(?:floofgens)\.net/posts/)?(\d+)}i, cast: :to_i
 
   has_many :post_set_maintainers, dependent: :destroy do
@@ -35,7 +37,9 @@ class PostSet < ApplicationRecord
   validates :description, length: { maximum: Danbooru.config.pool_descr_max_size }
   validate :validate_number_of_posts
   validate :can_make_public, if: :is_public_changed?
-  validate :set_per_hour_limit, on: :create
+  # Restoring a backup (UserDataImport) recreates sets the user already had elsewhere, so the
+  # hourly creation limit, which guards against spam, doesn't apply. The total cap still does.
+  validate :set_per_hour_limit, on: :create, unless: :restoring
   validate :can_create_new_set_limit, on: :create
 
   before_save :update_post_count
@@ -50,6 +54,8 @@ class PostSet < ApplicationRecord
 
   # manual_post_ids_write: set to true when post_ids is changed via the attribute writer
   attr_accessor :manual_post_ids_write
+  # restoring: set by UserDataImport when recreating a set from a backup.
+  attr_accessor :restoring
 
   def self.name_to_id(name)
     if name =~ /\A\d+\z/
@@ -127,8 +133,8 @@ class PostSet < ApplicationRecord
     end
 
     def can_create_new_set_limit
-      if PostSet.where(creator_id: creator.id).count >= 75
-        errors.add(:base, "You can only create 75 sets.")
+      if PostSet.where(creator_id: creator.id).count >= MAX_SETS_PER_USER
+        errors.add(:base, "You can only create #{MAX_SETS_PER_USER} sets.")
         return false
       end
       true
