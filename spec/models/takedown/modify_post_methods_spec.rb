@@ -45,8 +45,8 @@ RSpec.describe Takedown do
       expect(added).to contain_exactly(post_a.id, post_b.id)
     end
 
-    it "accepts e621 post URLs" do
-      added = takedown.add_posts_by_ids!("https://e621.net/posts/#{post_a.id}")
+    it "accepts floofgens post URLs" do
+      added = takedown.add_posts_by_ids!("https://floofgens.net/posts/#{post_a.id}")
       expect(added).to contain_exactly(post_a.id)
     end
 
