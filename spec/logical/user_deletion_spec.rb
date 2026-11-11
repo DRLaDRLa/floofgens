@@ -13,6 +13,8 @@ RSpec.describe UserDeletion do
 
       let(:user) { create(:user) }
 
+      before { user.saved_searches.create(query: "test", name: "name", is_tracked: true) }
+
       it "renames the user to user_{id}" do
         deletion.delete!
         expect(user.reload.name).to eq("user_#{user.id}")
@@ -28,6 +30,14 @@ RSpec.describe UserDeletion do
       end
 
       it "clears email, tags, profile fields, and resets level to MEMBER" do
+        expect(user.email).not_to eq("")
+        expect(user.recent_tags).not_to eq("")
+        expect(user.favorite_tags).not_to eq("")
+        expect(user.blacklisted_tags).not_to eq("")
+        expect(user.profile_about).not_to eq("")
+        expect(user.profile_artinfo).not_to eq("")
+        expect(user.custom_style).not_to eq("")
+        expect(user.saved_searches.count).not_to eq(0)
         deletion.delete!
         user.reload
         expect(user.email).to eq("")
@@ -37,6 +47,7 @@ RSpec.describe UserDeletion do
         expect(user.profile_about).to eq("")
         expect(user.profile_artinfo).to eq("")
         expect(user.custom_style).to eq("")
+        expect(user.saved_searches.count).to eq(0)
         expect(user.level).to eq(UserLevel::MEMBER)
       end
 

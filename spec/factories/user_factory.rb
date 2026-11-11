@@ -12,6 +12,9 @@ FactoryBot.define do
     password_confirmation { "hexerade" }
     last_logged_in_at { Time.now }
     last_ip_addr { Faker::Internet.ip_v4_address }
+    profile_about { "Hi!" }
+    profile_artinfo { "Maybe?" }
+    custom_style { "body { font-family: \"Comic Sans\"; }" }
 
     transient do
       disable_sock_puppet_validation { true }
