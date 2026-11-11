@@ -500,6 +500,11 @@ module Danbooru
       10_000
     end
 
+    def launch_period_limit_exemption
+      # (Date.new(2026, 11, 11)..Date.new(2026, 11, 20))
+      nil
+    end
+
     def user_feedback_expires_after
       6.months
     end
