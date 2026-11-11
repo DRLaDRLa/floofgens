@@ -24,6 +24,10 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Lowercase repository name
+        run: |
+          echo "REPO_LOWER=$(echo "${{ github.repository }}" | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV
+
       - name: Push production image to GHCR
         uses: docker/build-push-action@v7
         with:
@@ -32,4 +36,4 @@ jobs:
           build-args: |
             GIT_TAG=${{ github.ref_name }}
           cache-from: type=gha
-          tags: ghcr.io/${{ github.repository }}:${{ github.ref_name }}
+          tags: ghcr.io/${{ env.REPO_LOWER }}:${{ github.ref_name }}
