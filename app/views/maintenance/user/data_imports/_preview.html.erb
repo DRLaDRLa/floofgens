@@ -50,7 +50,7 @@
             <td><%= link_to "existing set ##{item['post_set_id']}", post_set_path(item["post_set_id"]) %></td>
             <td><%= item["recoverable"] %> to add</td>
             <td><%= item["missing_ids"].size %></td>
-            <td>Already restored earlier<%= item["recoverable"].positive? ? "; missing posts found since will be added" : "; nothing new to add" %></td>
+            <td>Already restored earlier<%= item["recoverable"] > 0 ? "; missing posts found since will be added" : "; nothing new to add" %></td>
           <% else %>
             <td><%= item["resolved_name"] || "—" %> <span class="text-muted">(<%= item["resolved_short_name"] || "—" %>)</span></td>
             <td><%= item["present"] %></td>
@@ -74,7 +74,17 @@
 <table class="striped autofit">
   <tbody>
     <% profile["fields"].each do |field, info| %>
-      <% state = if info["backup_empty"] then "empty" elsif !info["differs"] then "unchanged" elsif info["current_empty"] then "restorable" else "replaceable" end %>
+      <%
+        state = if info["backup_empty"]
+                  "empty"
+                elsif !info["differs"]
+                  "unchanged"
+                elsif info["current_empty"]
+                  "restorable"
+                else
+                  "replaceable"
+                end
+      %>
       <tr><td><%= profile_label[field] %></td><td><%= profile_text[state] %></td></tr>
     <% end %>
     <tr>
@@ -99,15 +109,23 @@
 
 <h2>Restore</h2>
 <%= form_tag(confirm_maintenance_user_data_import_path(import), class: "simple_form") do %>
-  <% favorites_ok = favorites["new"].positive? && favorites["conflict"].nil? %>
+  <% favorites_ok = favorites["new"] > 0 && favorites["conflict"].nil? %>
   <% sets_ok = sets["items"].any? && sets["conflict"].nil? %>
   <div class="input">
     <label><%= check_box_tag "import[favorites]", "1", favorites_ok, disabled: !favorites_ok %> Favorites</label>
-    <% if favorites["conflict"] %><span class="hint">Not possible: see above.</span><% elsif favorites["new"].zero? %><span class="hint">Nothing to add.</span><% end %>
+    <% if favorites["conflict"] %>
+      <span class="hint">Not possible: see above.</span>
+    <% elsif favorites["new"] == 0 %>
+      <span class="hint">Nothing to add.</span>
+    <% end %>
   </div>
   <div class="input">
     <label><%= check_box_tag "import[sets]", "1", sets_ok, disabled: !sets_ok %> Sets</label>
-    <% if sets["conflict"] %><span class="hint">Not possible: see above.</span><% elsif sets["items"].empty? %><span class="hint">Nothing to add.</span><% end %>
+    <% if sets["conflict"] %>
+      <span class="hint">Not possible: see above.</span>
+    <% elsif sets["items"].empty? %>
+      <span class="hint">Nothing to add.</span>
+    <% end %>
   </div>
   <div class="input">
     <label><%= check_box_tag "import[profile]", "1", false %> Profile (fills in empty fields only)</label>
