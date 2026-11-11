@@ -287,6 +287,9 @@ RSpec.describe UserDataImport::Runner do
     let(:avatar_post) { insert_post(900_801) }
     let(:backup) { parse_backup(about: "Backup about", artinfo: "Backup art", avatar: { "post_id" => avatar_post.id, "cropped" => true }) }
 
+    # The user factory fills in profile text; these examples start from an empty profile.
+    before { user.update_columns(profile_about: "", profile_artinfo: "") }
+
     it "changes nothing unless the profile is selected" do
       run_import(create_import(user, backup))
       expect(user.reload).to have_attributes(profile_about: "", profile_artinfo: "", avatar_id: nil)

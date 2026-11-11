@@ -69,6 +69,12 @@ RSpec.describe Maintenance::User::DataImportsController do
         expect(response.body).to include("Start import")
       end
 
+      it "accepts a backup larger than the 4 MB cap on non-multipart request bodies" do
+        json = backup_json
+        upload("#{json}#{' ' * (5.megabytes - json.bytesize)}")
+        expect(response).to redirect_to(maintenance_user_data_import_path(UserDataImport.last))
+      end
+
       it "rejects an invalid file without writing anything" do
         expect { upload("{not json") }.not_to(change { row_counts })
         expect(response).to have_http_status(:unprocessable_content)
