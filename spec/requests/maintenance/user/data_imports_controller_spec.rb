@@ -143,10 +143,12 @@ RSpec.describe Maintenance::User::DataImportsController do
         expect(import.reload).to have_attributes(status: "queued", import_sets: false)
       end
 
-      it "shares the run rate limit per user" do
+      it "checks the per-user run rate limit before doing any work" do
         allow(RateLimiter).to receive(:throttle!).with("user_data_import_run:#{user.id}", limit: 5, period: 1.day).and_return(true)
+        allow(UserDataImport::Runner).to receive(:new).and_call_original
         post confirm_maintenance_user_data_import_path(import), params: { import: { favorites: "1" } }
         expect(response).to have_http_status(:too_many_requests)
+        expect(UserDataImport::Runner).not_to have_received(:new)
         expect(import.reload.status).to eq("pending")
       end
 

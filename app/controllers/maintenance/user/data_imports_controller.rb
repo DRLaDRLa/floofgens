@@ -72,6 +72,8 @@ module Maintenance
       end
 
       def confirm
+        # Before the preflight below, which reads every referenced post.
+        raise APIThrottled if RateLimiter.throttle!("user_data_import_run:#{CurrentUser.id}", limit: RUN_LIMIT, period: RUN_PERIOD)
         return redirect_to(maintenance_user_data_import_path(@import), notice: "This import has already started.") unless @import.is_pending?
 
         choice = selected_categories
@@ -81,8 +83,6 @@ module Maintenance
         @import.update_columns(preview: UserDataImport::Runner.preview_from(plan))
         conflicts = UserDataImport::Runner.conflicts_for(plan, choice.select { |k, v| v && k != :replace_profile }.keys.map(&:to_s))
         return render_confirm_error(conflicts.values.join(" ")) if conflicts.any?
-
-        raise APIThrottled if RateLimiter.throttle!("user_data_import_run:#{CurrentUser.id}", limit: RUN_LIMIT, period: RUN_PERIOD)
 
         UserDataImportJob.perform_async(@import.id) if @import.confirm!(**choice) == 1
         redirect_to maintenance_user_data_import_path(@import)
