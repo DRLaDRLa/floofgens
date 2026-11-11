@@ -24,7 +24,7 @@
   <tab-head></tab-head>
   <tab-body>
     <%= link_to "Change password", edit_user_password_path(user_id: @user.id), class: "st-button" %>
-    <%= link_to "Delete account", maintenance_user_deletion_path, class: "st-button danger" %>
+    <%= link_to "Deactivate account", maintenance_user_deletion_path, class: "st-button danger" %>
   </tab-body>
 </tab-entry>
 
