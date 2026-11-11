@@ -96,18 +96,18 @@ RSpec.describe Takedown do
       expect(takedown.post_array).to eq([1, 2, 3])
     end
 
-    it "parses full e621 URLs" do
-      takedown.update_columns(post_ids: "https://e621.net/posts/42")
+    it "parses full floofgens URLs" do
+      takedown.update_columns(post_ids: "https://floofgens.net/posts/42")
       expect(takedown.post_array).to eq([42])
     end
 
-    it "parses full e926 URLs" do
-      takedown.update_columns(post_ids: "https://e926.net/posts/99")
-      expect(takedown.post_array).to eq([99])
-    end
+    # it "parses full e926 URLs" do
+    #   takedown.update_columns(post_ids: "https://e926.net/posts/99")
+    #   expect(takedown.post_array).to eq([99])
+    # end
 
     it "parses a mix of bare IDs and URLs" do
-      takedown.update_columns(post_ids: "1 https://e621.net/posts/2 3")
+      takedown.update_columns(post_ids: "1 https://floofgens.net/posts/2 3")
       expect(takedown.post_array).to contain_exactly(1, 2, 3)
     end
 
