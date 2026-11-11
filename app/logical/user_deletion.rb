@@ -31,6 +31,7 @@ class UserDeletion
         end
 
         clear_saved_searches
+        clear_data_imports
         clear_user_settings
         reset_password
         revoke_credentials
@@ -74,6 +75,12 @@ class UserDeletion
 
   def clear_saved_searches
     user.saved_searches.destroy_all
+  end
+
+  # Uploaded backups (private favorites, profile text) and their results. An import job still
+  # running for this user fails its next ownership check and stops without writing.
+  def clear_data_imports
+    UserDataImport.where(user_id: user.id).delete_all
   end
 
   def clear_user_settings
