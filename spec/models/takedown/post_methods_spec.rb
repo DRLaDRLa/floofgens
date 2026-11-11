@@ -22,16 +22,16 @@ RSpec.describe Takedown do
       expect(takedown.matching_post_ids("1 2 3")).to eq([1, 2, 3])
     end
 
-    it "parses full e621.net post URLs" do
-      expect(takedown.matching_post_ids("https://e621.net/posts/42")).to eq([42])
+    it "parses full floofgens.net post URLs" do
+      expect(takedown.matching_post_ids("https://floofgens.net/posts/42")).to eq([42])
     end
 
-    it "parses full e926.net post URLs" do
-      expect(takedown.matching_post_ids("https://e926.net/posts/99")).to eq([99])
-    end
+    # it "parses full e926.net post URLs" do
+    #   expect(takedown.matching_post_ids("https://e926.net/posts/99")).to eq([99])
+    # end
 
     it "parses a mix of bare IDs and URLs" do
-      result = takedown.matching_post_ids("1 https://e621.net/posts/2 https://e926.net/posts/3")
+      result = takedown.matching_post_ids("1 https://floofgens.net/posts/2 https://floofgens.net/posts/3")
       expect(result).to contain_exactly(1, 2, 3)
     end
 

@@ -564,6 +564,8 @@ RSpec.describe UsersController do
   describe "GET /users/:id/toggle_karma_free" do
     let(:target) { create(:user) }
 
+    before { allow(Danbooru.config.custom_configuration).to receive(:upload_karma_free_threshold).and_return(1) }
+
     context "as a member" do
       before { sign_in_as create(:user) }
 

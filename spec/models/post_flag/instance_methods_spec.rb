@@ -79,6 +79,8 @@ RSpec.describe PostFlag do
     let(:janitor)     { create(:janitor_user) }
 
     context "with default config (:staff)" do
+      before { allow(Danbooru.config.custom_configuration).to receive(:flag_reason_visibility).and_return(:staff) }
+
       it "returns true for staff (janitor)" do
         expect(flag.can_see_note?(janitor)).to be true
       end
