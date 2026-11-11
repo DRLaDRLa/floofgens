@@ -88,6 +88,7 @@ module Danbooru
       user.enable_keyboard_navigation = true
       user.per_page = records_per_page
       user.show_post_statistics = true
+      user.enable_privacy_mode = true
     end
 
     def default_blacklist
