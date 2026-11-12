@@ -3,6 +3,7 @@
 // Logo configuration - organized by category for easier maintenance
 $pride-logos: (
   "pride",
+  "pride-no-text",
   "pride_philadelphia",
   "pride_progressive",
 );
@@ -11,7 +12,7 @@ $sexuality-logos: (
   "ace", "aegosexual", "agender", "androgyne", "aro",
   "bigender", "bi", "bear",
   "demibisexual", "demiboy", "demigirl", "demiromantic", "demisexual",
-  "gay", "genderfluid", "genderqueer", 
+  "gay", "genderfluid", "genderqueer",
   "intersex",
   "lesbian",
   "nonbinary",
@@ -22,6 +23,7 @@ $sexuality-logos: (
 );
 
 $other-logos: (
+  "default-no-text",
   "french",
   "luxembourg",
   "renamon",
