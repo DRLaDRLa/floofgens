@@ -601,13 +601,19 @@ class User < ApplicationRecord
   end
 
   module LimitMethods
+    def launch_exempt?
+      created_at && Danbooru.config.launch_period_limit_exemption&.cover?(created_at.to_date)
+    end
+
     def younger_than(duration)
       return false if Danbooru.config.disable_age_checks?
+      return false if launch_exempt?
       created_at > duration.ago
     end
 
     def older_than(duration)
       return true if Danbooru.config.disable_age_checks?
+      return true if launch_exempt?
       created_at < duration.ago
     end
 
