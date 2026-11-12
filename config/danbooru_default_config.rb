@@ -872,6 +872,10 @@ If you have questions regarding this change, please \"DM the staff member\":[/dm
       ""
     end
 
+    def mailgun_api_host
+      nil
+    end
+
     def mail_from_addr
       "floofgens.net <noreply@floofgens.net>"
     end
