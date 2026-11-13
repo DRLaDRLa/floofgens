@@ -42,6 +42,14 @@ RSpec.describe UserDataImport::Document do
       expect(document.favorites.map(&:post_id)).to eq([5, 900, 12, 450])
     end
 
+    it "spreads favorites with the same timestamp a microsecond apart, in file order" do
+      base = Time.utc(2026, 3, 1, 10)
+      document = parse_backup(favorites: { "900" => time, "12" => time, "450" => time, "7" => "2026-03-01T10:00:00.000001Z" })
+      expect(document.favorites.map { |fav| [fav.post_id, fav.favorited_at] }).to eq([
+        [900, base], [12, base + Rational(1, 1_000_000)], [450, base + Rational(2, 1_000_000)], [7, base + Rational(3, 1_000_000)],
+      ])
+    end
+
     it "keeps the file order through storage, where jsonb sorts object keys" do
       document = parse_backup(favorites: { "900" => time, "12" => time, "450" => time })
       stored = JSON.parse(document.to_storage.to_json)
@@ -65,10 +73,12 @@ RSpec.describe UserDataImport::Document do
     it "accepts exactly the maximum number of favorites and rejects one more" do
       max = described_class.max_favorites
       expect(max).to eq(200_000)
-      favorites = (1..max).to_h { |id| [id.to_s, time] }
+      # More favorites than e6ai has posts: only the count limit is under test here.
+      stub_const("#{described_class}::MAX_POST_ID", described_class::MAX_SET_ID)
+      favorites = (1_000_001..(1_000_000 + max)).to_h { |id| [id.to_s, time] }
       expect(parse_backup(favorites: favorites).favorites.size).to eq(max)
 
-      favorites[(max + 1).to_s] = time
+      favorites["1"] = time
       expect(errors_for_backup(favorites: favorites)).to eq(["favorites: 200001 favorites, the maximum is 200000"])
     end
 
@@ -81,17 +91,17 @@ RSpec.describe UserDataImport::Document do
     end
 
     it "accepts exactly 10,000 posts in a set and rejects 10,001" do
-      ids = (1..10_000).to_a
+      ids = (20_101..30_100).to_a
       expect(parse_backup(sets: { 1 => backup_set(post_ids: ids) }).sets.first.post_ids.size).to eq(10_000)
 
-      expect(errors_for_backup(sets: { 1 => backup_set(post_ids: ids + [10_001]) }))
+      expect(errors_for_backup(sets: { 1 => backup_set(post_ids: ids + [30_101]) }))
         .to eq(["sets.1.post_ids: 10001 posts, the maximum is 10000"])
     end
 
     it "rejects more post references in total than allowed" do
       allow(described_class).to receive(:max_total_post_refs).and_return(3)
-      expect { parse_backup(favorites: { 1 => time, 2 => time }, sets: { 1 => backup_set(post_ids: [3]) }) }.not_to raise_error
-      expect(errors_for_backup(favorites: { 1 => time, 2 => time }, sets: { 1 => backup_set(post_ids: [3, 4]) }))
+      expect { parse_backup(favorites: { 3 => time, 4 => time }, sets: { 1 => backup_set(post_ids: [5]) }) }.not_to raise_error
+      expect(errors_for_backup(favorites: { 3 => time, 4 => time }, sets: { 1 => backup_set(post_ids: [5, 6]) }))
         .to eq(["The backup references 4 posts in total, the maximum is 3"])
     end
 
@@ -116,8 +126,8 @@ RSpec.describe UserDataImport::Document do
   end
 
   describe "malformed input" do
-    it "rejects invalid JSON" do
-      expect(errors_for("{not json")).to include(include("isn't valid JSON"))
+    it "rejects invalid JSON without details" do
+      expect(errors_for("{not json")).to eq(["This is not a valid backup file"])
     end
 
     it "rejects invalid UTF-8" do
@@ -126,12 +136,12 @@ RSpec.describe UserDataImport::Document do
 
     it "rejects nesting deeper than a backup can be" do
       hash = backup_hash(sets: { 1 => backup_set(post_ids: [[1]]) })
-      expect(errors_for_hash(hash)).to eq(["The file is nested more deeply than a backup can be"])
+      expect(errors_for_hash(hash)).to eq(["This is not a valid backup file"])
     end
 
     it "rejects duplicate keys" do
-      raw = backup_json.sub('"favorites":{}', '"favorites":{"1":"2026-03-01T10:00:00Z","1":"2026-03-02T10:00:00Z"}')
-      expect(errors_for(raw)).to include(match(/isn't valid JSON.*duplicate key/))
+      raw = backup_json.sub('"favorites":{}', '"favorites":{"3":"2026-03-01T10:00:00Z","3":"2026-03-02T10:00:00Z"}')
+      expect(errors_for(raw)).to eq(["This is not a valid backup file"])
     end
 
     it "rejects a non-object root, missing keys and unknown keys" do
@@ -146,14 +156,14 @@ RSpec.describe UserDataImport::Document do
       expect(errors_for_hash(backup_hash.merge("format_version" => "1"))).to eq(["format_version \"1\" isn't supported (expected 1)"])
     end
 
-    [0, -1, 1.5, "12", true, nil, 2_147_483_648].each do |bad|
+    [0, -1, 1.5, "12", true, nil, 193_897, 2_147_483_648, 1, 92_114, 164_022].each do |bad|
       it "rejects #{bad.inspect} as a set post ID without coercing it" do
-        expect(errors_for_backup(sets: { 1 => backup_set(post_ids: [1, bad]) }))
+        expect(errors_for_backup(sets: { 1 => backup_set(post_ids: [3, bad]) }))
           .to eq(["sets.1.post_ids[1]: #{bad.inspect} isn't a valid post ID"])
       end
     end
 
-    %w[0 -1 1.5 abc 01 2147483648].each do |bad|
+    %w[0 -1 1.5 abc 01 193897 2147483648 2 40024].each do |bad|
       it "rejects #{bad.inspect} as a favorite post ID" do
         expect(errors_for_backup(favorites: { bad => time })).to eq(["favorites: #{bad.inspect} isn't a valid post ID"])
       end
@@ -162,17 +172,26 @@ RSpec.describe UserDataImport::Document do
     it "rejects an invalid avatar post ID" do
       expect(errors_for_backup(avatar: { "post_id" => "5", "cropped" => false }))
         .to eq(["profile.avatar.post_id: \"5\" isn't a valid post ID"])
+      expect(errors_for_backup(avatar: { "post_id" => 143_202, "cropped" => false }))
+        .to eq(["profile.avatar.post_id: 143202 isn't a valid post ID"])
+    end
+
+    it "accepts e6ai's last post ID, and set IDs past it" do
+      expect(parse_backup(favorites: { 193_896 => time }, sets: { 500_000 => backup_set(post_ids: [193_896]) }).sets.first.source_id)
+        .to eq(500_000)
     end
 
     ["2026-03-01", "2026-03-01T10:00:00", "yesterday", "2026-13-01T10:00:00Z", 1_700_000_000].each do |bad|
       it "rejects the timestamp #{bad.inspect}" do
-        expect(errors_for_backup(favorites: { 1 => bad }).first).to match(/favorites\.1: .*(isn't an ISO 8601 timestamp|isn't a valid timestamp)/)
+        expect(errors_for_backup(favorites: { 3 => bad }).first).to match(/favorites\.3: .*(isn't an ISO 8601 timestamp|isn't a valid timestamp)/)
       end
     end
 
     it "rejects timestamps outside the allowed range" do
-      expect(errors_for_backup(favorites: { 1 => "1999-12-31T23:59:59Z" })).to eq(["favorites.1: 1999-12-31T23:59:59Z is outside the allowed range"])
-      expect(errors_for_backup(favorites: { 1 => "2026-11-10T03:00:00Z" })).to eq(["favorites.1: 2026-11-10T03:00:00Z is outside the allowed range"])
+      expect { parse_backup(favorites: { 3 => "2022-10-17T00:00:00Z" }) }.not_to raise_error
+      expect(errors_for_backup(favorites: { 3 => "2022-10-16T23:59:59Z" })).to eq(["favorites.3: 2022-10-16T23:59:59Z is outside the allowed range"])
+      expect(errors_for_backup(favorites: { 3 => "2026-11-10T03:00:00Z" })).to eq(["favorites.3: 2026-11-10T03:00:00Z is outside the allowed range"])
+      expect(errors_for_hash(backup_hash.merge("exported_at" => "2022-10-16T00:00:00Z"))).to eq(["exported_at: 2022-10-16T00:00:00Z is outside the allowed range"])
     end
 
     it "rejects wrong types" do
@@ -182,18 +201,32 @@ RSpec.describe UserDataImport::Document do
       expect(errors_for_backup(about: 5)).to eq(["profile.about must be a string"])
     end
 
-    it "rejects invalid short names, null characters and duplicate posts in a set" do
+    it "rejects invalid short names and duplicate posts in a set" do
       expect(errors_for_backup(sets: { 1 => backup_set(short_name: "has space") })).to eq(["sets.1.short_name \"has space\" isn't a valid set short name"])
       expect(errors_for_backup(sets: { 1 => backup_set(short_name: "123") })).to eq(["sets.1.short_name \"123\" isn't a valid set short name"])
-      expect(errors_for_backup(sets: { 1 => backup_set(description: "a\u0000b") })).to eq(["sets.1.description contains a null character"])
-      expect(errors_for_backup(sets: { 1 => backup_set(post_ids: [1, 2, 1]) })).to eq(["sets.1.post_ids lists the same post more than once"])
+      expect(errors_for_backup(sets: { 1 => backup_set(post_ids: [3, 4, 3]) })).to eq(["sets.1.post_ids lists the same post more than once"])
+    end
+
+    it "rejects a short name that isn't lowercase, as PostSet stores them" do
+      expect(errors_for_backup(sets: { 1 => backup_set(short_name: "My_Set") })).to eq(["sets.1.short_name \"My_Set\" isn't a valid set short name"])
+    end
+
+    ["\u0000", "\u0007", "\u000B", "\u001B", "\u007F", "\u0085"].each do |char|
+      it "rejects the control character #{char.inspect} in text" do
+        expect(errors_for_backup(sets: { 1 => backup_set(description: "a#{char}b") })).to eq(["sets.1.description contains a control character"])
+        expect(errors_for_backup(about: "a#{char}b")).to eq(["profile.about contains a control character"])
+      end
+    end
+
+    it "accepts tabs and line breaks in text" do
+      expect(parse_backup(about: "a\tb\r\nc\nd").profile[:about]).to eq("a\tb\r\nc\nd")
     end
 
     it "rejects a stored copy whose favorite order was tampered with" do
-      stored = parse_backup(favorites: { 1 => time, 2 => time }).to_storage
-      expect { described_class.from_storage(stored.merge("favorite_order" => %w[1])) }.to raise_error(described_class::Invalid)
-      expect { described_class.from_storage(stored.merge("favorite_order" => %w[1 1])) }.to raise_error(described_class::Invalid)
-      expect { described_class.from_storage(stored.merge("favorite_order" => %w[1 3])) }.to raise_error(described_class::Invalid)
+      stored = parse_backup(favorites: { 3 => time, 4 => time }).to_storage
+      expect { described_class.from_storage(stored.merge("favorite_order" => %w[3])) }.to raise_error(described_class::Invalid)
+      expect { described_class.from_storage(stored.merge("favorite_order" => %w[3 3])) }.to raise_error(described_class::Invalid)
+      expect { described_class.from_storage(stored.merge("favorite_order" => %w[3 5])) }.to raise_error(described_class::Invalid)
       expect { described_class.from_storage(stored.except("favorite_order")) }.to raise_error(described_class::Invalid)
     end
   end

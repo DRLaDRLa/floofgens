@@ -187,7 +187,8 @@ class UserDataImport
     end
 
     def scoped_as_user(&)
-      CurrentUser.scoped(@user, import.creator_ip_addr.to_s, &)
+      # The import doesn't keep the uploader's IP; 127.0.0.1 is what background jobs use.
+      CurrentUser.scoped(@user, &)
     end
 
     def fenced(&)
@@ -248,7 +249,7 @@ class UserDataImport
           "Favorites are currently disabled on this site."
         elsif new_entries.size > capacity
           "Restoring your favorites needs room for #{new_entries.size} more, but your account can only add #{capacity} " \
-            "(limit #{@user.favorite_limit}). Remove some favorites and upload the backup again, or leave favorites out."
+            "(limit #{@user.favorite_limit}). Remove some favorites and try again, or leave favorites out."
         end
 
       {
@@ -338,10 +339,10 @@ class UserDataImport
           "Sets are currently disabled on this site."
         elsif owned + new_count > PostSet::MAX_SETS_PER_USER
           "Restoring #{new_count} new #{'set'.pluralize(new_count)} would exceed the limit of #{PostSet::MAX_SETS_PER_USER} sets " \
-            "(you have #{owned}). Delete some sets and upload the backup again, or leave sets out."
+            "(you have #{owned}). Delete some sets and try again, or leave sets out."
         elsif too_big
           "Restoring the missing posts of \"#{too_big['name']}\" would exceed #{Document.max_posts_per_set} posts. " \
-            "Remove some posts from that set and upload the backup again, or leave sets out."
+            "Remove some posts from that set and try again, or leave sets out."
         elsif items.any? { |item| item["action"] == "create" && item["resolved_name"].nil? }
           "A set name couldn't be made unique."
         end
@@ -407,7 +408,7 @@ class UserDataImport
                 name: names[0], shortname: names[1], description: set.description,
                 is_public: item["is_public"], transfer_on_delete: set.transfer_on_delete, post_ids: item["post_ids"],
                 created_at: set.created_at, updated_at: set.updated_at,
-                creator: @user, creator_ip_addr: import.creator_ip_addr, restoring: true
+                creator: @user, restoring: true
               )
             end
             import.record_set_mapping!(set.map_key, post_set.id, item["missing_ids"])

@@ -2937,7 +2937,6 @@ CREATE TABLE public.user_data_imports (
     import_sets boolean DEFAULT false NOT NULL,
     import_profile boolean DEFAULT false NOT NULL,
     replace_profile boolean DEFAULT false NOT NULL,
-    creator_ip_addr inet,
     file_name text,
     file_size integer,
     document jsonb,
@@ -6121,14 +6120,7 @@ CREATE INDEX index_uploads_on_uploader_ip_addr ON public.uploads USING btree (up
 -- Name: index_user_data_imports_on_user_id; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE INDEX index_user_data_imports_on_user_id ON public.user_data_imports USING btree (user_id);
-
-
---
--- Name: index_user_data_imports_on_user_id_open; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE UNIQUE INDEX index_user_data_imports_on_user_id_open ON public.user_data_imports USING btree (user_id) WHERE (status = ANY (ARRAY['pending'::text, 'queued'::text, 'running'::text]));
+CREATE UNIQUE INDEX index_user_data_imports_on_user_id ON public.user_data_imports USING btree (user_id);
 
 
 --

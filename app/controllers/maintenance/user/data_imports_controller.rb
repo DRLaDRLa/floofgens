@@ -6,6 +6,7 @@ module Maintenance
     # e621ng-based site. Upload -> preview -> confirm -> background job -> results.
     class DataImportsController < ApplicationController
       respond_to :html, :json
+      before_action :ensure_enabled
       before_action :member_only
       before_action :reject_api_key_auth
       before_action :reject_bearer_auth
@@ -17,9 +18,7 @@ module Maintenance
       RUN_LIMIT = 5
       RUN_PERIOD = 1.day
 
-      BUSY_MESSAGE = "Finish or cancel your current import first."
-      REUPLOAD_MESSAGE = "This backup is no longer stored. Upload it again to continue; " \
-                         "anything already restored will be recognized and not duplicated."
+      ONE_IMPORT_MESSAGE = "Each account can import one backup, and you've already started yours."
 
       def show
         respond_with(@import) do |format|
@@ -28,15 +27,18 @@ module Maintenance
       end
 
       def new
-        open_import = UserDataImport.unfinished.find_by(user_id: CurrentUser.id)
-        redirect_to maintenance_user_data_import_path(open_import), notice: BUSY_MESSAGE if open_import
+        existing = UserDataImport.find_by(user_id: CurrentUser.id)
+        return unless existing
+
+        notice = existing.is_pending? ? "Start or cancel the backup you uploaded first." : ONE_IMPORT_MESSAGE
+        redirect_to maintenance_user_data_import_path(existing), notice: notice
       end
 
       def create
         raise APIThrottled if RateLimiter.throttle!("user_data_import_upload:#{CurrentUser.id}", limit: UPLOAD_LIMIT, period: UPLOAD_PERIOD)
 
-        running = UserDataImport.unfinished.where(user_id: CurrentUser.id).where.not(status: "pending").first
-        return redirect_to(maintenance_user_data_import_path(running), notice: BUSY_MESSAGE) if running
+        started = UserDataImport.where(user_id: CurrentUser.id).where.not(status: "pending").first
+        return redirect_to(maintenance_user_data_import_path(started), notice: ONE_IMPORT_MESSAGE) if started
 
         file = params[:file]
         return render_upload_errors(["Choose a backup file to upload."]) unless file.respond_to?(:read) && file.respond_to?(:size)
@@ -52,14 +54,15 @@ module Maintenance
           UserDataImport.where(user_id: CurrentUser.id, status: "pending").delete_all
           UserDataImport.create!(
             user: CurrentUser.user, document: document.to_storage, preview: UserDataImport::Runner.preview_from(plan),
-            creator_ip_addr: CurrentUser.ip_addr, file_name: file.try(:original_filename).to_s.truncate(255), file_size: file.size
+            file_name: file.try(:original_filename).to_s.truncate(255), file_size: file.size
           )
         end
         redirect_to maintenance_user_data_import_path(import)
       rescue UserDataImport::Document::Invalid => e
         render_upload_errors(e.errors)
       rescue ActiveRecord::RecordNotUnique
-        redirect_to new_maintenance_user_data_import_path, notice: BUSY_MESSAGE
+        # Lost a race against another upload or a confirm.
+        redirect_to new_maintenance_user_data_import_path
       end
 
       def destroy
@@ -91,26 +94,26 @@ module Maintenance
       end
 
       def resume
-        if @import.needs_reupload?
-          redirect_to new_maintenance_user_data_import_path, notice: REUPLOAD_MESSAGE
-        elsif (other = @import.other_open_import)
-          redirect_to maintenance_user_data_import_path(other), notice: BUSY_MESSAGE
-        elsif !@import.resumable?
-          redirect_to maintenance_user_data_import_path(@import), notice: "This import can't be resumed right now."
-        else
-          raise APIThrottled if RateLimiter.throttle!("user_data_import_run:#{CurrentUser.id}", limit: RUN_LIMIT, period: RUN_PERIOD)
+        unless @import.resumable?
+          return redirect_to(maintenance_user_data_import_path(@import), notice: "This import can't be resumed right now.")
+        end
 
-          if @import.requeue!
-            UserDataImportJob.perform_async(@import.id)
-            redirect_to maintenance_user_data_import_path(@import), notice: "Import resumed."
-          else
-            # Lost a race: another import opened, or the worker came back.
-            redirect_to maintenance_user_data_import_path(@import), notice: "This import can't be resumed right now. #{BUSY_MESSAGE}"
-          end
+        raise APIThrottled if RateLimiter.throttle!("user_data_import_run:#{CurrentUser.id}", limit: RUN_LIMIT, period: RUN_PERIOD)
+
+        if @import.requeue! == 1
+          UserDataImportJob.perform_async(@import.id)
+          redirect_to maintenance_user_data_import_path(@import), notice: "Import resumed."
+        else
+          # Lost a race: the worker came back, or another resume won.
+          redirect_to maintenance_user_data_import_path(@import), notice: "This import can't be resumed right now."
         end
       end
 
       private
+
+      def ensure_enabled
+        render_expected_error(:forbidden, "Importing user data is currently disabled.") unless Danbooru.config.enable_user_data_import?
+      end
 
       def load_import
         @import = UserDataImport.where(user_id: CurrentUser.id).find(params.expect(:id))

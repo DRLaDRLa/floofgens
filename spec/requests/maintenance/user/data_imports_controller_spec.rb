@@ -4,6 +4,7 @@ require "rails_helper"
 
 RSpec.describe Maintenance::User::DataImportsController do
   include_context "as admin"
+  include_context "without e6ai post ID limits"
 
   let(:user) { create(:user, created_at: 2.weeks.ago) }
   let(:time) { "2026-03-01T10:00:00Z" }
@@ -21,6 +22,34 @@ RSpec.describe Maintenance::User::DataImportsController do
   end
 
   before { allow(RateLimiter).to receive(:throttle!).and_return(false) }
+
+  describe "when importing is disabled in the config" do
+    before do
+      allow(Danbooru.config.custom_configuration).to receive(:enable_user_data_import?).and_return(false)
+      sign_in_as(user)
+    end
+
+    it "returns 403 on every endpoint and hides the settings entry" do
+      import = create_import(user, parse_backup, status: "pending")
+      get new_maintenance_user_data_import_path
+      expect(response).to have_http_status(:forbidden)
+      expect(upload(backup_json)).to eq(403)
+      get maintenance_user_data_import_path(import)
+      expect(response).to have_http_status(:forbidden)
+      get maintenance_user_data_import_path(import, format: :json)
+      expect(response).to have_http_status(:forbidden)
+      post confirm_maintenance_user_data_import_path(import), params: { import: { favorites: "1" } }
+      expect(response).to have_http_status(:forbidden)
+      post resume_maintenance_user_data_import_path(import)
+      expect(response).to have_http_status(:forbidden)
+      delete maintenance_user_data_import_path(import)
+      expect(response).to have_http_status(:forbidden)
+      expect(import.reload.status).to eq("pending")
+
+      get settings_users_path
+      expect(response.body).not_to include("Import User Data")
+    end
+  end
 
   describe "authentication" do
     it "redirects anonymous users to the login page" do
@@ -57,13 +86,13 @@ RSpec.describe Maintenance::User::DataImportsController do
 
     describe "upload" do
       it "stores a valid backup as a pending import with a preview" do
-        post_record = insert_post(903_001)
-        upload(backup_json(favorites: { post_record.id => time, 903_099 => time }))
+        post_record = insert_post(193_001)
+        upload(backup_json(favorites: { post_record.id => time, 193_099 => time }))
 
         import = UserDataImport.last
         expect(response).to redirect_to(maintenance_user_data_import_path(import))
         expect(import).to have_attributes(status: "pending", user_id: user.id, file_name: "backup.json")
-        expect(import.preview["favorites"]).to include("new" => 1, "missing_count" => 1, "missing" => [903_099])
+        expect(import.preview["favorites"]).to include("new" => 1, "missing_count" => 1, "missing" => [193_099])
 
         get maintenance_user_data_import_path(import)
         expect(response.body).to include("Start import")
@@ -78,7 +107,7 @@ RSpec.describe Maintenance::User::DataImportsController do
       it "rejects an invalid file without writing anything" do
         expect { upload("{not json") }.not_to(change { row_counts })
         expect(response).to have_http_status(:unprocessable_content)
-        expect(response.body).to include("isn&#39;t valid JSON")
+        expect(response.body).to include("This is not a valid backup file")
       end
 
       it "rejects a file over the size limit before reading it, without writing anything" do
@@ -117,7 +146,7 @@ RSpec.describe Maintenance::User::DataImportsController do
     end
 
     describe "confirm" do
-      let(:post_record) { insert_post(903_101) }
+      let(:post_record) { insert_post(193_101) }
       let!(:import) do
         upload(backup_json(favorites: { post_record.id => time }, sets: { 1 => backup_set(post_ids: [post_record.id]) }))
         UserDataImport.last
@@ -170,6 +199,40 @@ RSpec.describe Maintenance::User::DataImportsController do
       end
     end
 
+    describe "one import per user" do
+      it "explains it before the import is started" do
+        upload(backup_json)
+        follow_redirect!
+        expect(response.body).to include("Each account can import one backup.")
+      end
+
+      it "sends the user to their pending upload instead of a new form" do
+        pending = create_import(user, parse_backup, status: "pending")
+        get new_maintenance_user_data_import_path
+        expect(response).to redirect_to(maintenance_user_data_import_path(pending))
+        expect(flash[:notice]).to eq("Start or cancel the backup you uploaded first.")
+      end
+
+      %w[queued running completed failed].each do |status|
+        it "refuses another upload once the import is #{status}" do
+          started = create_import(user, parse_backup, status: status)
+          get new_maintenance_user_data_import_path
+          expect(response).to redirect_to(maintenance_user_data_import_path(started))
+          expect(flash[:notice]).to eq(described_class::ONE_IMPORT_MESSAGE)
+
+          expect { upload(backup_json) }.not_to(change(UserDataImport, :count))
+          expect(response).to redirect_to(maintenance_user_data_import_path(started))
+          expect(started.reload.status).to eq(status)
+        end
+      end
+
+      it "allows a new upload after cancelling a pending one" do
+        delete maintenance_user_data_import_path(create_import(user, parse_backup, status: "pending"))
+        upload(backup_json)
+        expect(UserDataImport.where(user_id: user.id).sole).to be_is_pending
+      end
+    end
+
     it "cancels a pending import" do
       import = create_import(user, parse_backup, status: "pending")
       delete maintenance_user_data_import_path(import)
@@ -185,33 +248,11 @@ RSpec.describe Maintenance::User::DataImportsController do
         expect(UserDataImportJob.jobs.size).to eq(1)
       end
 
-      it "asks to finish the other import first while one is open" do
-        other = create_import(user, parse_backup, status: "pending")
-        get maintenance_user_data_import_path(import)
-        expect(response.body).to include("Finish or cancel your current import first.")
-        expect(response.body).not_to include("Resume import")
-
-        post resume_maintenance_user_data_import_path(import)
-        expect(response).to redirect_to(maintenance_user_data_import_path(other))
-        expect(import.reload.status).to eq("failed")
-      end
-
-      it "handles losing the race to the open-import index gracefully" do
-        allow_any_instance_of(UserDataImport).to receive(:requeue!).and_return(false) # rubocop:disable RSpec/AnyInstance
+      it "handles losing a resume race gracefully" do
+        allow_any_instance_of(UserDataImport).to receive(:requeue!).and_return(0) # rubocop:disable RSpec/AnyInstance
         post resume_maintenance_user_data_import_path(import)
         expect(response).to redirect_to(maintenance_user_data_import_path(import))
         expect(flash[:notice]).to include("can't be resumed right now")
-      end
-
-      it "asks for the backup again once its document was pruned" do
-        import.update_columns(document: nil)
-        get maintenance_user_data_import_path(import)
-        expect(response.body).to include("This backup is no longer stored.")
-        expect(response.body).not_to include("Resume import")
-
-        post resume_maintenance_user_data_import_path(import)
-        expect(response).to redirect_to(new_maintenance_user_data_import_path)
-        expect(import.reload.status).to eq("failed")
       end
 
       it "refuses while a worker holds a live lease" do

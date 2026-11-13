@@ -16,7 +16,7 @@ module UserDataImportHelpers
   def create_import(user, document, **options)
     UserDataImport.create!(
       user: user, document: document.to_storage, status: options.fetch(:status, "queued"), queued_at: Time.current,
-      creator_ip_addr: "127.0.0.1", import_favorites: options.fetch(:favorites, true), import_sets: options.fetch(:sets, true),
+      import_favorites: options.fetch(:favorites, true), import_sets: options.fetch(:sets, true),
       import_profile: options.fetch(:profile, false), replace_profile: options.fetch(:replace_profile, false)
     )
   end
@@ -37,4 +37,14 @@ end
 
 RSpec.configure do |config|
   config.include UserDataImportHelpers
+end
+
+# Factory posts get sequence IDs, which can be one of e6ai's destroyed post IDs (1 and 2 on a
+# fresh database) or, in a long-lived test database, pass e6ai's last post ID. Specs that
+# aren't about those limits lift them; document_spec covers them.
+RSpec.shared_context "without e6ai post ID limits" do
+  before do
+    stub_const("UserDataImport::Document::MAX_POST_ID", UserDataImport::Document::MAX_SET_ID)
+    stub_const("UserDataImport::Document::DESTROYED_POST_IDS", Set.new.freeze)
+  end
 end

@@ -7,10 +7,11 @@ require "rails_helper"
 # stay exact. This needs committed data, so it doesn't use a test transaction; it creates only
 # rows it can delete afterwards (posts via insert_all, the import row) and uses the seeded admin.
 RSpec.describe UserDataImport::Runner, "#favorites_batch" do
+  include_context "without e6ai post ID limits"
   self.use_transactional_tests = false
 
   let(:admin) { User.find_by!(name: "admin") }
-  let(:post_ids) { [902_001, 902_002, 902_003] }
+  let(:post_ids) { [192_001, 192_002, 192_003] }
   let(:time) { "2026-03-01T10:00:00.000000Z" }
 
   let!(:original_favorite_count) { admin.user_status.favorite_count }

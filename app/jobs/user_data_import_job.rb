@@ -7,6 +7,9 @@ class UserDataImportJob < ApplicationJob
   sidekiq_options queue: "low_prio", retry: 0, lock: :until_executing, lock_ttl: 1.hour.to_i
 
   def perform(import_id)
+    # Left queued; the user can resume it once importing is turned back on.
+    return unless Danbooru.config.enable_user_data_import?
+
     token = UserDataImport.claim!(import_id)
     return if token.nil? # not queued, or another worker holds a live lease
 

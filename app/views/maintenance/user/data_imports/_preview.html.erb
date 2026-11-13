@@ -19,7 +19,7 @@
     <tr><td>Already in your favorites</td><td><%= favorites["already"] %></td></tr>
     <tr><td>Posts not on this site (skipped)</td><td><%= favorites["missing_count"] %></td></tr>
     <% if favorites["busy_count"].to_i > 0 %>
-      <tr><td>Posts temporarily unavailable (import again later)</td><td><%= favorites["busy_count"] %></td></tr>
+      <tr><td>Posts temporarily unavailable (skipped)</td><td><%= favorites["busy_count"] %></td></tr>
     <% end %>
     <tr><td>Room left in your favorites</td><td><%= favorites["capacity"] %></td></tr>
   </tbody>
@@ -135,6 +135,7 @@
       <label><%= check_box_tag "import[replace_profile]", "1", false %> Replace my current profile values with the backup's</label>
     </div>
   <% end %>
+  <p><strong>Each account can import one backup.</strong> Once you start, you can't import another file, so check that this is the right backup. To use a different one, cancel this upload first.</p>
   <div class="input">
     <%= submit_tag "Start import" %>
   </div>

@@ -3,14 +3,22 @@
 require "rails_helper"
 
 RSpec.describe UserDataImportJob do
+  include_context "without e6ai post ID limits"
   include_context "as admin"
 
   let(:user) { create(:user, created_at: 2.weeks.ago) }
-  let(:post_record) { insert_post(901_001) }
+  let(:post_record) { insert_post(191_001) }
   let(:import) { create_import(user, parse_backup(favorites: { post_record.id => "2026-03-01T10:00:00Z" })) }
 
   def expire_lease!(record)
     record.update_columns(lease_expires_at: 1.minute.ago)
+  end
+
+  it "leaves the import queued while importing is disabled in the config" do
+    allow(Danbooru.config.custom_configuration).to receive(:enable_user_data_import?).and_return(false)
+    described_class.new.perform(import.id)
+    expect(import.reload).to have_attributes(status: "queued", run_token: nil)
+    expect(Favorite.where(user_id: user.id)).to be_empty
   end
 
   describe ".claim!" do
@@ -96,21 +104,15 @@ RSpec.describe UserDataImportJob do
   describe "#requeue!" do
     it "refuses while a worker holds a live lease" do
       UserDataImport.claim!(import.id)
-      expect(import.reload.requeue!).to be(false)
+      expect(import.reload.requeue!).to eq(0)
       expect(import.reload.status).to eq("running")
-    end
-
-    it "returns false when it loses a race to the one-open-import index" do
-      import.update_columns(status: "failed")
-      allow(UserDataImport).to receive(:where).and_raise(ActiveRecord::RecordNotUnique)
-      expect(import.requeue!).to be(false)
     end
 
     it "requeues an interrupted import" do
       UserDataImport.claim!(import.id)
       expire_lease!(import)
       expect(import.reload).to be_resumable
-      expect(import.requeue!).to be(true)
+      expect(import.requeue!).to eq(1)
       expect(import.reload).to have_attributes(status: "queued", run_token: nil)
     end
   end

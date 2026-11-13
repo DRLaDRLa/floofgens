@@ -4,6 +4,7 @@ require "rails_helper"
 
 RSpec.describe UserDataImport::Runner do
   include_context "as admin"
+  include_context "without e6ai post ID limits"
 
   let(:user) { create(:user, created_at: 2.weeks.ago) }
   let(:same_second) { "2026-03-01T10:00:00Z" }
@@ -14,42 +15,33 @@ RSpec.describe UserDataImport::Runner do
 
   describe "favorites" do
     it "keeps the file order for same-second favorites through storage, and lists them newest first" do
-      [900_900, 900_012, 900_450].each { |id| insert_post(id) }
-      import = create_import(user, parse_backup(favorites: { "900900" => same_second, "900012" => same_second, "900450" => same_second }))
-      expect(import.reload.document["favorites"].keys).to eq(%w[900012 900450 900900]) # jsonb sorted them
+      [190_900, 190_012, 190_450].each { |id| insert_post(id) }
+      import = create_import(user, parse_backup(favorites: { "190900" => same_second, "190012" => same_second, "190450" => same_second }))
+      expect(import.reload.document["favorites"].keys).to eq(%w[190012 190450 190900]) # jsonb sorted them
 
       expect(run_import(import)).to be_is_completed
-      expect(Favorite.for_user(user.id).order(:id).pluck(:post_id)).to eq([900_900, 900_012, 900_450])
-      expect(PostSets::Favorites.new(user, 1, limit: 10).posts.map(&:id)).to eq([900_450, 900_012, 900_900])
-    end
-
-    it "sorts a favorite recovered in a later import after same-second favorites restored earlier" do
-      [900_001, 900_002].each { |id| insert_post(id) }
-      backup = parse_backup(favorites: { "900001" => same_second, "900003" => same_second, "900002" => same_second })
-      run_import(create_import(user, backup))
-
-      insert_post(900_003)
-      run_import(create_import(user, backup))
-      # Exact timestamps are kept; within the second the recovered one counts as the latest.
-      expect(PostSets::Favorites.new(user, 1, limit: 10).posts.map(&:id)).to eq([900_003, 900_002, 900_001])
-      expect(Favorite.for_user(user.id).pluck(:created_at).uniq).to eq([Time.utc(2026, 3, 1, 10)])
+      base = Time.utc(2026, 3, 1, 10)
+      expect(Favorite.for_user(user.id).order(:created_at).pluck(:post_id, :created_at)).to eq([
+        [190_900, base], [190_012, base + Rational(1, 1_000_000)], [190_450, base + Rational(2, 1_000_000)],
+      ])
+      expect(PostSets::Favorites.new(user, 1, limit: 10).posts.map(&:id)).to eq([190_450, 190_012, 190_900])
     end
 
     it "preserves timestamps, leaves existing favorites alone and keeps the counters consistent" do
-      older = insert_post(900_101)
-      existing = insert_post(900_102)
-      missing_id = 900_199
+      older = insert_post(190_101)
+      existing = insert_post(190_102)
+      missing_id = 190_199
       FavoriteManager.add!(user: user, post: existing)
       existing_time = Favorite.find_by(user_id: user.id, post_id: existing.id).created_at
 
       import = create_import(user, parse_backup(favorites: {
-        older.id => "2001-05-05T05:05:05Z", # before the post was created: imported unchanged
-        existing.id => "2020-01-01T00:00:00Z",
+        older.id => "2022-11-05T05:05:05Z", # before the post was created: imported unchanged
+        existing.id => "2023-01-01T00:00:00Z",
         missing_id => same_second,
       }))
       run_import(import)
 
-      expect(Favorite.find_by(user_id: user.id, post_id: older.id).created_at).to eq(Time.utc(2001, 5, 5, 5, 5, 5))
+      expect(Favorite.find_by(user_id: user.id, post_id: older.id).created_at).to eq(Time.utc(2022, 11, 5, 5, 5, 5))
       expect(Favorite.find_by(user_id: user.id, post_id: existing.id).created_at).to eq(existing_time)
       expect(import.results["favorites"]).to include("imported" => 1, "missing" => [missing_id])
       expect(import.results.dig("baseline", "favorites_already")).to eq(1)
@@ -58,7 +50,7 @@ RSpec.describe UserDataImport::Runner do
     end
 
     it "skips a post that became busy after preflight, under the post lock" do
-      post = insert_post(900_201)
+      post = insert_post(190_201)
       import = create_import(user, parse_backup(favorites: { post.id => same_second }))
       token = UserDataImport.claim!(import.id)
       runner = described_class.new(import.reload, token: token)
@@ -73,7 +65,7 @@ RSpec.describe UserDataImport::Runner do
 
     it "refuses favorites while they're locked down" do
       allow(Security::Lockdown).to receive(:favorites_disabled?).and_return(true)
-      post = insert_post(900_301)
+      post = insert_post(190_301)
       import = run_import(create_import(user, parse_backup(favorites: { post.id => same_second })))
 
       expect(import).to be_is_failed
@@ -82,7 +74,7 @@ RSpec.describe UserDataImport::Runner do
     end
 
     it "retries a batch that hits a deadlock" do
-      post = insert_post(900_401)
+      post = insert_post(190_401)
       calls = 0
       allow(Favorite).to receive(:insert_all).and_wrap_original do |original, *args, **kwargs|
         calls += 1
@@ -99,7 +91,7 @@ RSpec.describe UserDataImport::Runner do
   end
 
   describe "capacity" do
-    let(:posts) { [900_501, 900_502, 900_503].map { |id| insert_post(id) } }
+    let(:posts) { [190_501, 190_502, 190_503].map { |id| insert_post(id) } }
     let(:backup) { parse_backup(favorites: posts.to_h { |post| [post.id, same_second] }) }
 
     it "blocks favorites before any write when they don't fit" do
@@ -121,7 +113,7 @@ RSpec.describe UserDataImport::Runner do
     it "keeps committed batches when capacity runs out mid-run, then resumes after room is freed" do
       stub_const("#{described_class}::FAVORITE_BATCH_SIZE", 1)
       allow_any_instance_of(User).to receive(:favorite_limit).and_return(3) # rubocop:disable RSpec/AnyInstance
-      extra = insert_post(900_599)
+      extra = insert_post(190_599)
       import = create_import(user, backup)
       batches = 0
       allow(described_class).to receive(:new).and_wrap_original do |original, *args, **kwargs|
@@ -143,7 +135,7 @@ RSpec.describe UserDataImport::Runner do
       expect(favorite_counts_consistent?(user, posts.map(&:id) + [extra.id])).to be(true)
 
       FavoriteManager.remove!(user: user, post: extra)
-      expect(import.requeue!).to be(true)
+      expect(import.requeue!).to eq(1)
       expect(run_import(import)).to be_is_completed
       expect(import.results.dig("favorites", "imported")).to eq(3)
       expect(Favorite.for_user(user.id).pluck(:post_id)).to match_array(posts.map(&:id))
@@ -164,11 +156,11 @@ RSpec.describe UserDataImport::Runner do
 
   describe "sets" do
     it "creates new sets with the backup's metadata, order and timestamps, skipping missing posts" do
-      a = insert_post(900_601)
-      b = insert_post(900_602)
+      a = insert_post(190_601)
+      b = insert_post(190_602)
       backup = parse_backup(sets: { 42 => backup_set(
         name: "Example Set", short_name: "example", description: "Some [b]dtext[/b]", is_public: true,
-        transfer_on_delete: true, post_ids: [b.id, 900_699, a.id]
+        transfer_on_delete: true, post_ids: [b.id, 190_699, a.id]
       ) })
       import = run_import(create_import(user, backup))
 
@@ -227,50 +219,52 @@ RSpec.describe UserDataImport::Runner do
       expect(build(:post_set, creator: user)).not_to be_valid
     end
 
-    describe "repeated imports" do
-      let(:a) { insert_post(900_701) }
-      let(:c) { insert_post(900_703) }
-      let(:backup) { parse_backup(favorites: { 900_702 => same_second }, sets: { 5 => backup_set(post_ids: [a.id, 900_702, c.id]) }) }
+    describe "resuming after sets were restored" do
+      let(:a) { insert_post(190_701) }
+      let(:c) { insert_post(190_703) }
+      let(:backup) { parse_backup(favorites: { 190_702 => same_second }, sets: { 5 => backup_set(post_ids: [a.id, 190_702, c.id]) }) }
 
-      it "recognizes earlier sets in a new import session and merges recovered posts in place" do
-        run_import(create_import(user, backup))
+      # As if the run had stopped after creating the set but before finishing the sets and
+      # favorites phases, then gets resumed.
+      def interrupt_and_resume(import)
+        import.update_columns(status: "failed", document: backup.to_storage,
+                              results: import.results.merge("phases" => import.results["phases"].except("sets", "favorites")))
+        expect(import.requeue!).to eq(1)
+        run_import(import)
+      end
+
+      it "recognizes the restored set and merges posts found since in place" do
+        import = run_import(create_import(user, backup))
         set = PostSet.find_by!(creator_id: user.id)
         expect(set.post_ids).to eq([a.id, c.id])
 
-        own = insert_post(900_799)
+        own = insert_post(190_799)
         set.update!(post_ids: [own.id, a.id, c.id]) # the user's own edit
-        b = insert_post(900_702)
+        b = insert_post(190_702)
 
-        second = create_import(user, backup)
-        plan = described_class.new(second).preflight
-        expect(plan["sets"]["items"].first).to include("action" => "merge", "recoverable" => 1, "post_set_id" => set.id)
-
-        run_import(second)
+        import = interrupt_and_resume(import)
+        expect(import).to be_is_completed
         expect(PostSet.where(creator_id: user.id).count).to eq(1)
         expect(set.reload.post_ids).to eq([own.id, a.id, b.id, c.id])
         expect(Favorite.find_by(user_id: user.id, post_id: b.id).created_at).to eq(Time.utc(2026, 3, 1, 10))
-        expect(second.results.dig("sets", "merged", "5")).to include("recovered" => 1, "still_missing" => 0)
-
-        third = run_import(create_import(user, backup))
-        expect(third.results.dig("sets", "merged", "5")).to include("recovered" => 0)
-        expect(set.reload.post_ids).to eq([own.id, a.id, b.id, c.id])
+        expect(import.results.dig("sets", "merged", "5")).to include("recovered" => 1, "still_missing" => 0)
       end
 
       it "doesn't add back posts the user removed after restoring" do
-        insert_post(900_702)
-        run_import(create_import(user, backup))
+        insert_post(190_702)
+        import = run_import(create_import(user, backup))
         set = PostSet.find_by!(creator_id: user.id)
         set.update!(post_ids: [a.id])
 
-        run_import(create_import(user, backup))
+        interrupt_and_resume(import)
         expect(set.reload.post_ids).to eq([a.id])
       end
 
       it "recreates a restored set that was deleted" do
-        run_import(create_import(user, backup))
+        import = run_import(create_import(user, backup))
         PostSet.find_by!(creator_id: user.id).destroy!
 
-        run_import(create_import(user, backup))
+        interrupt_and_resume(import)
         expect(PostSet.where(creator_id: user.id).count).to eq(1)
       end
     end
@@ -284,7 +278,7 @@ RSpec.describe UserDataImport::Runner do
   end
 
   describe "profile" do
-    let(:avatar_post) { insert_post(900_801) }
+    let(:avatar_post) { insert_post(190_801) }
     let(:backup) { parse_backup(about: "Backup about", artinfo: "Backup art", avatar: { "post_id" => avatar_post.id, "cropped" => true }) }
 
     # The user factory fills in profile text; these examples start from an empty profile.
@@ -311,10 +305,11 @@ RSpec.describe UserDataImport::Runner do
     end
 
     it "skips avatars whose post is missing or deleted" do
-      import = run_import(create_import(user, parse_backup(avatar: { "post_id" => 900_899, "cropped" => false }), profile: true))
+      import = run_import(create_import(user, parse_backup(avatar: { "post_id" => 190_899, "cropped" => false }), profile: true))
       expect(import.results.dig("profile", "avatar")).to eq("post_missing")
 
-      deleted = insert_post(900_898, is_deleted: true)
+      import.destroy! # one import per user
+      deleted = insert_post(190_898, is_deleted: true)
       import = run_import(create_import(user, parse_backup(avatar: { "post_id" => deleted.id, "cropped" => false }), profile: true))
       expect(import.results.dig("profile", "avatar")).to eq("post_deleted")
       expect(user.reload.avatar_id).to be_nil
@@ -323,7 +318,7 @@ RSpec.describe UserDataImport::Runner do
 
   describe "failure handling" do
     it "fails without any writes when the stored backup no longer validates" do
-      post = insert_post(900_901)
+      post = insert_post(190_901)
       import = create_import(user, parse_backup(favorites: { post.id => same_second }))
       import.update_columns(document: import.document.merge("favorite_order" => []))
 
@@ -334,7 +329,7 @@ RSpec.describe UserDataImport::Runner do
   end
 
   describe "reindex reconciliation" do
-    let(:posts) { [900_951, 900_952].map { |id| insert_post(id) } }
+    let(:posts) { [190_951, 190_952].map { |id| insert_post(id) } }
     let(:backup) { parse_backup(favorites: posts.to_h { |post| [post.id, same_second] }) }
 
     # Makes BulkIndexUpdateJob enqueues fail for the post IDs `failing` currently returns.
@@ -364,7 +359,7 @@ RSpec.describe UserDataImport::Runner do
       generation = import.reindex_generation
 
       failing = [second]
-      expect(import.requeue!).to be(true)
+      expect(import.requeue!).to eq(1)
       run_import(import) # reconciles batch 1, commits batch 2, then its enqueue fails
       expect(import).to be_is_failed
       expect(import.needs_reindex).to be(true)

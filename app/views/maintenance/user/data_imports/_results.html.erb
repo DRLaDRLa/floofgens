@@ -10,12 +10,7 @@
 <% else %>
   <div class="box-section background-red">
     <p><%= import.error_message.presence || "The import failed." %></p>
-    <% if import.needs_reupload? %>
-      <p><%= Maintenance::User::DataImportsController::REUPLOAD_MESSAGE %></p>
-      <p><%= link_to "Upload the backup again", new_maintenance_user_data_import_path %></p>
-    <% elsif (other = import.other_open_import) %>
-      <p><%= Maintenance::User::DataImportsController::BUSY_MESSAGE %> <%= link_to "Go to it", maintenance_user_data_import_path(other) %></p>
-    <% elsif import.resumable? %>
+    <% if import.resumable? %>
       <%= button_to "Resume import", resume_maintenance_user_data_import_path(import), method: :post %>
     <% end %>
   </div>
@@ -32,7 +27,7 @@
       <% end %>
       <% unavailable = results.dig("favorites", "busy").to_a + results.dig("favorites", "unavailable").to_a %>
       <% if unavailable.any? %>
-        <tr><td>Posts temporarily unavailable (import again later)</td><td><%= unavailable.size %></td></tr>
+        <tr><td>Posts temporarily unavailable (skipped; resuming retries them)</td><td><%= unavailable.size %></td></tr>
       <% end %>
     </tbody>
   </table>

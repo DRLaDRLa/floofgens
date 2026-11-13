@@ -3,8 +3,8 @@
 # A user's restore of an exported data backup (see UserDataImport::Document for the format).
 #
 # Lifecycle: pending (uploaded, previewed) -> queued (confirmed) -> running -> completed | failed.
-# A failed import keeps its document so it can be resumed; DailyPruneJob drops the document
-# after a week, after which the backup has to be uploaded again.
+# Each user gets one import (unique index on user_id). Until it's confirmed, the upload can be
+# cancelled or replaced. A failed import keeps its document so it can always be resumed.
 #
 # Ownership: a worker claims the row with a random run_token and a lease. Every write
 # transaction starts with #fence!, which locks the row and checks the token, so a worker
@@ -14,7 +14,6 @@ class UserDataImport < ApplicationRecord
   class LeaseLost < StandardError; end
 
   STATUSES = %w[pending queued running completed failed].freeze
-  OPEN_STATUSES = %w[pending queued running].freeze
   LEASE_SECONDS = 5.minutes.to_i
   # A queued import whose job hasn't started in this long was most likely lost (Sidekiq OSS
   # doesn't recover jobs from a killed process), so the user may resume it.
@@ -23,8 +22,6 @@ class UserDataImport < ApplicationRecord
   belongs_to :user
 
   validates :status, inclusion: { in: STATUSES }
-
-  scope :unfinished, -> { where(status: OPEN_STATUSES) }
 
   STATUSES.each do |name|
     define_method(:"is_#{name}?") { status == name }
@@ -45,9 +42,8 @@ class UserDataImport < ApplicationRecord
     claimed == 1 ? token : nil
   end
 
-  # Merges the set mappings of all the user's imports, keeping only sets that still exist and
-  # belong to the user. Later imports win when the same source set appears more than once.
-  # Keys are "<source set id>:<source created_at>"; values are
+  # The set mapping of the user's import, keeping only sets that still exist and belong to
+  # the user. Keys are "<source set id>:<source created_at>"; values are
   # { "post_set_id" => id, "missing" => [post ids that were missing at that import] }.
   def self.restored_sets_for(user)
     merged = {}
@@ -62,8 +58,6 @@ class UserDataImport < ApplicationRecord
       Runner.reconcile_index!(import)
     end
     where(status: "pending").where(created_at: ...1.day.ago).where(set_map: {}).delete_all
-    where(status: "failed", needs_reindex: false).where(finished_at: ...7.days.ago).where.not(document: nil)
-                                                 .update_all(document: nil, updated_at: Time.current)
   end
 
   # Must be the first statement of every write transaction. Locks the row (normal favorite and
@@ -155,18 +149,14 @@ class UserDataImport < ApplicationRecord
     )
   end
 
-  # Moves a failed, interrupted or lost import back to queued. Refused while the lease is
-  # live, when the document is gone, or when the user has another open import.
+  # Moves a failed, interrupted or lost import back to queued. Refused while the lease is live.
+  # Returns the number of rows updated (0 or 1).
   def requeue!
     self.class.where(id: id).where.not(document: nil)
-        .where(<<~SQL.squish, QUEUED_STALE_AFTER.ago, user_id, id)
-          (status = 'failed' OR (status = 'running' AND lease_expires_at < now()) OR (status = 'queued' AND queued_at < ?))
-          AND NOT EXISTS (SELECT 1 FROM user_data_imports o WHERE o.user_id = ? AND o.id <> ? AND o.status IN ('pending', 'queued', 'running'))
-        SQL
+        .where("status = 'failed' OR (status = 'running' AND lease_expires_at < now()) OR (status = 'queued' AND queued_at < ?)",
+               QUEUED_STALE_AFTER.ago)
         .update_all(status: "queued", run_token: nil, lease_expires_at: nil, error_message: nil,
-                    queued_at: Time.current, finished_at: nil, updated_at: Time.current) == 1
-  rescue ActiveRecord::RecordNotUnique
-    false
+                    queued_at: Time.current, finished_at: nil, updated_at: Time.current)
   end
 
   def lease_expired?
@@ -179,14 +169,6 @@ class UserDataImport < ApplicationRecord
 
   def resumable?
     document.present? && (is_failed? || interrupted?)
-  end
-
-  def needs_reupload?
-    is_failed? && document.nil?
-  end
-
-  def other_open_import
-    self.class.unfinished.where(user_id: user_id).where.not(id: id).first
   end
 
   def selected_categories

@@ -2,8 +2,8 @@
 
 # Tracks a user's restore of an exported data backup (favorites, sets, profile).
 # The row holds the validated backup between upload and the background run, the
-# worker's lease, and the source -> destination set mapping that keeps repeated
-# imports from creating duplicate sets.
+# worker's lease, and the source -> destination set mapping that keeps a resumed
+# run from creating duplicate sets. Each user gets one import.
 class CreateUserDataImports < ActiveRecord::Migration[8.1]
   def change
     create_table :user_data_imports do |t|
@@ -17,7 +17,6 @@ class CreateUserDataImports < ActiveRecord::Migration[8.1]
       t.boolean :import_profile, null: false, default: false
       t.boolean :replace_profile, null: false, default: false
 
-      t.inet :creator_ip_addr
       t.text :file_name
       t.integer :file_size
 
@@ -36,10 +35,8 @@ class CreateUserDataImports < ActiveRecord::Migration[8.1]
       t.datetime :finished_at
       t.timestamps
 
-      t.index :user_id
-      # At most one open import per user.
-      t.index :user_id, unique: true, name: "index_user_data_imports_on_user_id_open",
-                        where: "status IN ('pending', 'queued', 'running')"
+      # One import per user. An unconfirmed upload is replaced by deleting it first.
+      t.index :user_id, unique: true
     end
   end
 end

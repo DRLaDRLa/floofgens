@@ -28,7 +28,7 @@
   </tab-body>
 </tab-entry>
 
-<% if CurrentUser.user.is_member? %>
+<% if CurrentUser.user.is_member? && Danbooru.config.enable_user_data_import? %>
 <tab-entry tab="<%= tab_name %>" group="account" class="with-button" search="user account data import restore upload backup favorites sets profile json">
   <tab-head>Import Data</tab-head>
   <tab-body>
