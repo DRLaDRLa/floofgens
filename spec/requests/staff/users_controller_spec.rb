@@ -386,7 +386,7 @@ RSpec.describe Staff::UsersController do
       sign_in_as admin, reauthenticated: true
       get request_password_reset_staff_user_path(staff_user)
       expect(response).to redirect_to(user_path(staff_user))
-      expect(flash[:alert]).to eq("Only BD staff can request password resets for staff accounts")
+      expect(flash[:alert]).to eq("Only FG staff can request password resets for staff accounts")
     end
 
     it "returns 200 for a BD-staff admin when the target is staff" do
@@ -430,7 +430,7 @@ RSpec.describe Staff::UsersController do
       sign_in_as admin, reauthenticated: true
       post password_reset_staff_user_path(staff_user), params: { admin: { password: "hexerade" } }, headers: { "HTTP_REFERER" => user_path(staff_user) }
       expect(response).to redirect_to(user_path(staff_user))
-      expect(flash[:alert]).to eq("Only BD staff can request password resets for staff accounts")
+      expect(flash[:alert]).to eq("Only FG staff can request password resets for staff accounts")
     end
 
     it "returns 200 for a BD-staff admin when the target is staff" do

@@ -55,8 +55,13 @@ class UserPresenter
       permissions << "raised favorite limit"
     end
 
-    if CurrentUser.user.is_bd_staff? && user.is_bd_staff?
-      permissions << "bd staff"
+    if CurrentUser.user.is_bd_staff?
+      if user.is_bd_staff?
+        permissions << "fg staff"
+      end
+      if user.is_bd_auditor?
+        permissions << "auditor"
+      end
     end
 
     if CurrentUser.user.is_staff? && user.is_restricted? && user.recent_ban&.prevent_login?
