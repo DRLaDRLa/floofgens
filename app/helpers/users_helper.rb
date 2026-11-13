@@ -46,7 +46,7 @@ module UsersHelper
     return unless user.is_bd_staff?
 
     tag.span(class: "level-badge") do
-      "BD STAFF"
+      "FG STAFF"
     end
   end
 end

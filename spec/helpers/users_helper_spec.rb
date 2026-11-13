@@ -103,7 +103,7 @@ RSpec.describe UsersHelper do
         user.is_bd_staff = true
 
         badge_html = helper.user_bd_staff_badge(user)
-        expect(badge_html).to include("BD STAFF")
+        expect(badge_html).to include("FG STAFF")
       end
     end
 
