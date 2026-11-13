@@ -8,7 +8,7 @@
 #
 # Remove once fixed upstream and Rails version is bumped.
 { "Kyiv" => "Europe/Kyiv",
-  "Bad Dragon" => "America/Phoenix", # small easter egg
+  # "Bad Dragon" => "America/Phoenix", # small easter egg
   "Rangoon" => "Asia/Yangon", }.each do |name, tzinfo|
   if ActiveSupport::TimeZone::MAPPING[name] == tzinfo
     Rails.logger.warn("Timezone patch no longer needed for #{name} (#{__FILE__}:#{__LINE__})")
