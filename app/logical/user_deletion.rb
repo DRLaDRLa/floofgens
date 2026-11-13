@@ -30,6 +30,7 @@ class UserDeletion
           create_name_history(original_name, final_name)
         end
 
+        clear_private_sets
         clear_saved_searches
         clear_user_settings
         reset_password
@@ -70,6 +71,10 @@ class UserDeletion
 
   def create_mod_action
     ModAction.log(@admin_deletion ? :admin_user_delete : :user_delete, { user_id: user.id })
+  end
+
+  def clear_private_sets
+    user.post_sets.where(is_public: false).destroy_all
   end
 
   def clear_saved_searches
