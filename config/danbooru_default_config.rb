@@ -17,11 +17,11 @@ module Danbooru
     end
 
     def description
-      "floofgens"
+      "You like AI art, and we like AI art. Let's be friends!"
     end
 
     def domain
-      "floofgens"
+      "floofgens.net"
     end
 
     # Force rating:s on this version of the site.
@@ -36,7 +36,7 @@ module Danbooru
 
     # Contact email address of the admin.
     def contact_email
-      "management@#{domain}"
+      "contact@#{domain}"
     end
 
     def takedown_email
@@ -501,7 +501,6 @@ module Danbooru
     end
 
     def launch_period_limit_exemption
-      # (Date.new(2026, 11, 11)..Date.new(2026, 11, 20))
       nil
     end
 
@@ -510,7 +509,7 @@ module Danbooru
     end
 
     def discord_site
-      "https://discord.gg/pc6u6jCnrD"
+      "https://discord.gg/floofgens"
     end
 
     def discord_secret
