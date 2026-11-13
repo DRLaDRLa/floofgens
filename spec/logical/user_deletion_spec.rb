@@ -13,7 +13,11 @@ RSpec.describe UserDeletion do
 
       let(:user) { create(:user) }
 
-      before { user.saved_searches.create(query: "test", name: "name", is_tracked: true) }
+      before do
+        user.saved_searches.create(query: "test", name: "name", is_tracked: true)
+        user.post_sets.create(name: "public", shortname: "pub", description: "test public", is_public: true)
+        user.post_sets.create(name: "private", shortname: "pri", description: "test private", is_public: false)
+      end
 
       it "renames the user to user_{id}" do
         deletion.delete!
@@ -37,6 +41,7 @@ RSpec.describe UserDeletion do
         expect(user.profile_about).not_to eq("")
         expect(user.profile_artinfo).not_to eq("")
         expect(user.custom_style).not_to eq("")
+        expect(user.post_sets.count).not_to eq(0)
         expect(user.saved_searches.count).not_to eq(0)
         deletion.delete!
         user.reload
@@ -47,6 +52,8 @@ RSpec.describe UserDeletion do
         expect(user.profile_about).to eq("")
         expect(user.profile_artinfo).to eq("")
         expect(user.custom_style).to eq("")
+        expect(user.post_sets.where(is_public: false).count).to eq(0)
+        expect(user.post_sets.where(is_public: true).count).to eq(1)
         expect(user.saved_searches.count).to eq(0)
         expect(user.level).to eq(UserLevel::MEMBER)
       end
