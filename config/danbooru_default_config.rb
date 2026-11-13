@@ -1204,7 +1204,7 @@ If you have questions regarding this change, please \"DM the staff member\":[/dm
 
     # Config values a site profile may override per request (doc 38).
     # Never add a secret here: secrets are shared by every site.
-    SITE_SCOPED = Set[:app_name, :hostname, :domain, :description, :ads_config, :storage_base_url].freeze
+    SITE_SCOPED = Set[:app_name, :hostname, :domain, :description, :ads_config, :storage_base_url, :analytics_client_id].freeze
     SITE_ID_FORMAT = /\A[a-z0-9_-]+\z/
 
     def custom_configuration
