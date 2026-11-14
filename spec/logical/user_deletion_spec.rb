@@ -86,6 +86,11 @@ RSpec.describe UserDeletion do
         expect { deletion.delete! }.to enqueue_sidekiq_job(AvatarCleanupJob).with(user.id, true)
       end
 
+      it "deletes the user's data imports, including stored backups" do
+        create_import(user, parse_backup(about: "Private"), status: "failed")
+        expect { deletion.delete! }.to change { UserDataImport.where(user_id: user.id).count }.from(1).to(0)
+      end
+
       it "deletes the user's API keys so they no longer authenticate" do
         key = create(:api_key, user: user)
         create(:expiring_api_key, user: user)

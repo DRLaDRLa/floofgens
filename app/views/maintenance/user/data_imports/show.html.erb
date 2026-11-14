@@ -1,0 +1,36 @@
+<div id="c-maintenance-user-data-imports">
+  <div id="a-show">
+    <h1>Import User Data</h1>
+
+    <p>
+      Backup: <strong><%= @import.file_name.presence || "uploaded file" %></strong>,
+      uploaded <%= compact_time(@import.created_at) %>
+    </p>
+
+    <% case @import.status %>
+    <% when "pending" %>
+      <%= render "preview", import: @import, preview: @import.preview %>
+    <% when "queued", "running" %>
+      <div class="box-section">
+        <% if @import.interrupted? %>
+          <p>This import stopped before finishing. So far: <%= UserDataImport::Runner.progress_summary(@import).presence || "nothing" %>.</p>
+          <% if @import.resumable? %>
+            <%= button_to "Resume import", resume_maintenance_user_data_import_path(@import), method: :post %>
+          <% end %>
+        <% else %>
+          <p>Your import is <%= @import.is_queued? ? "waiting to start" : "running" %>. This can take a few minutes for a large backup.</p>
+          <% if @import.is_running? && (summary = UserDataImport::Runner.progress_summary(@import)).present? %>
+            <p>So far: <%= summary %>.</p>
+          <% end %>
+          <p><%= link_to "Refresh", maintenance_user_data_import_path(@import) %></p>
+        <% end %>
+      </div>
+    <% else %>
+      <%= render "results", import: @import %>
+    <% end %>
+  </div>
+</div>
+
+<% content_for(:page_title) do %>
+  Import User Data
+<% end %>

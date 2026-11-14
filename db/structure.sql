@@ -2924,6 +2924,57 @@ ALTER SEQUENCE public.uploads_id_seq OWNED BY public.uploads.id;
 
 
 --
+-- Name: user_data_imports; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.user_data_imports (
+    id bigint NOT NULL,
+    user_id integer NOT NULL,
+    status text DEFAULT 'pending'::text NOT NULL,
+    step text,
+    error_message text,
+    import_favorites boolean DEFAULT false NOT NULL,
+    import_sets boolean DEFAULT false NOT NULL,
+    import_profile boolean DEFAULT false NOT NULL,
+    replace_profile boolean DEFAULT false NOT NULL,
+    file_name text,
+    file_size integer,
+    document jsonb,
+    preview jsonb DEFAULT '{}'::jsonb NOT NULL,
+    results jsonb DEFAULT '{}'::jsonb NOT NULL,
+    set_map jsonb DEFAULT '{}'::jsonb NOT NULL,
+    run_token uuid,
+    lease_expires_at timestamp(6) without time zone,
+    needs_reindex boolean DEFAULT false NOT NULL,
+    reindex_generation bigint DEFAULT 0 NOT NULL,
+    queued_at timestamp(6) without time zone,
+    started_at timestamp(6) without time zone,
+    finished_at timestamp(6) without time zone,
+    created_at timestamp(6) without time zone NOT NULL,
+    updated_at timestamp(6) without time zone NOT NULL
+);
+
+
+--
+-- Name: user_data_imports_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.user_data_imports_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: user_data_imports_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.user_data_imports_id_seq OWNED BY public.user_data_imports.id;
+
+
+--
 -- Name: user_feedback; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -3820,6 +3871,13 @@ ALTER TABLE ONLY public.uploads ALTER COLUMN id SET DEFAULT nextval('public.uplo
 
 
 --
+-- Name: user_data_imports id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.user_data_imports ALTER COLUMN id SET DEFAULT nextval('public.user_data_imports_id_seq'::regclass);
+
+
+--
 -- Name: user_feedback id; Type: DEFAULT; Schema: public; Owner: -
 --
 
@@ -4498,6 +4556,14 @@ ALTER TABLE ONLY public.upload_whitelists
 
 ALTER TABLE ONLY public.uploads
     ADD CONSTRAINT uploads_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: user_data_imports user_data_imports_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.user_data_imports
+    ADD CONSTRAINT user_data_imports_pkey PRIMARY KEY (id);
 
 
 --
@@ -6051,6 +6117,20 @@ CREATE INDEX index_uploads_on_uploader_ip_addr ON public.uploads USING btree (up
 
 
 --
+-- Name: index_user_data_imports_on_run_token; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX index_user_data_imports_on_run_token ON public.user_data_imports USING btree (run_token);
+
+
+--
+-- Name: index_user_data_imports_on_user_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX index_user_data_imports_on_user_id ON public.user_data_imports USING btree (user_id);
+
+
+--
 -- Name: index_user_feedback_on_created_at; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -6322,6 +6402,14 @@ CREATE TRIGGER posts_update_change_seq BEFORE UPDATE ON public.posts FOR EACH RO
 
 ALTER TABLE ONLY public.search_trend_blacklists
     ADD CONSTRAINT fk_rails_001fdd1bc2 FOREIGN KEY (creator_id) REFERENCES public.users(id);
+
+
+--
+-- Name: user_data_imports fk_rails_012ebf542a; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.user_data_imports
+    ADD CONSTRAINT fk_rails_012ebf542a FOREIGN KEY (user_id) REFERENCES public.users(id);
 
 
 --
@@ -6643,6 +6731,7 @@ ALTER TABLE ONLY public.oauth_access_tokens
 SET search_path TO "$user", public;
 
 INSERT INTO "schema_migrations" (version) VALUES
+('20261110120000'),
 ('20261107150000'),
 ('20261107120000'),
 ('20261106120000'),

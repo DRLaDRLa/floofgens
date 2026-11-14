@@ -7,6 +7,8 @@ class UserDeletion
   DELETION_RETAINED_FLAGS = %w[no_flagging no_uploading no_karma_free].freeze
   # Hides favorites while FlushFavoritesJob works through them.
   DELETION_FORCED_FLAGS = %w[enable_privacy_mode].freeze
+  # Stored in place of the password hash; no password can match it.
+  LOCKED_PASSWORD_HASH = "*LK*"
 
   attr_reader :user, :password, :admin_deletion
 
@@ -32,6 +34,7 @@ class UserDeletion
 
         clear_private_sets
         clear_saved_searches
+        clear_data_imports
         clear_user_settings
         reset_password
         revoke_credentials
@@ -81,6 +84,12 @@ class UserDeletion
     user.saved_searches.destroy_all
   end
 
+  # Uploaded backups (private favorites, profile text) and their results. An import job still
+  # running for this user fails its next ownership check and stops without writing.
+  def clear_data_imports
+    UserDataImport.where(user_id: user.id).delete_all
+  end
+
   def clear_user_settings
     user.update_columns(
       recent_tags: "",
@@ -98,7 +107,7 @@ class UserDeletion
   end
 
   def reset_password
-    user.update_columns(password_hash: "", bcrypt_password_hash: "*LK*")
+    user.update_columns(password_hash: "", bcrypt_password_hash: LOCKED_PASSWORD_HASH)
   end
 
   # The password reset only ends web sessions; these authenticate independently of it.

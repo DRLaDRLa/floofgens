@@ -1,0 +1,144 @@
+<% favorites = preview["favorites"] %>
+<% sets = preview["sets"] %>
+<% profile = preview["profile"] %>
+<% profile_label = { "about" => "About me", "artinfo" => "Artist info" } %>
+<% profile_text = {
+     "restorable" => "will be restored", "replaceable" => "differs from yours (kept unless you choose to replace it)",
+     "unchanged" => "same as yours", "empty" => "empty in the backup"
+   } %>
+
+<% if @confirm_error %>
+  <div class="box-section background-red"><p><%= @confirm_error %></p></div>
+<% end %>
+
+<h2>Favorites</h2>
+<table class="striped autofit">
+  <tbody>
+    <tr><td>In the backup</td><td><%= favorites["total"] %></td></tr>
+    <tr><td>Will be added</td><td><%= favorites["new"] %></td></tr>
+    <tr><td>Already in your favorites</td><td><%= favorites["already"] %></td></tr>
+    <tr><td>Posts not on this site (skipped)</td><td><%= favorites["missing_count"] %></td></tr>
+    <% if favorites["busy_count"].to_i > 0 %>
+      <tr><td>Posts whose favorites are being moved to another post right now (skipped)</td><td><%= favorites["busy_count"] %></td></tr>
+    <% end %>
+    <tr><td>Room left in your favorites</td><td><%= favorites["capacity"] %></td></tr>
+  </tbody>
+</table>
+<% if favorites["missing"].present? %>
+  <details>
+    <summary>Missing post IDs<%= " (first #{favorites['missing'].size})" if favorites["missing_count"] > favorites["missing"].size %></summary>
+    <p><%= favorites["missing"].join(", ") %></p>
+  </details>
+<% end %>
+<% if favorites["conflict"] %>
+  <div class="box-section background-red"><p><%= favorites["conflict"] %></p></div>
+<% end %>
+
+<h2>Sets</h2>
+<% if sets["items"].empty? %>
+  <p>The backup has no sets.</p>
+<% else %>
+  <table class="striped">
+    <thead>
+      <tr><th>Set in the backup</th><th>Restored as</th><th>Posts</th><th>Not on this site</th><th>Notes</th></tr>
+    </thead>
+    <tbody>
+      <% sets["items"].each do |item| %>
+        <tr>
+          <td><%= item["name"] %> <span class="text-muted">(<%= item["short_name"] %>)</span></td>
+          <% if item["action"] == "merge" %>
+            <td><%= link_to "existing set ##{item['post_set_id']}", post_set_path(item["post_set_id"]) %></td>
+            <td><%= item["recoverable"] %> to add</td>
+            <td><%= item["missing_ids"].size %></td>
+            <td>Already restored earlier<%= item["recoverable"] > 0 ? "; missing posts found since will be added" : "; nothing new to add" %></td>
+          <% else %>
+            <td><%= item["resolved_name"] || "—" %> <span class="text-muted">(<%= item["resolved_short_name"] || "—" %>)</span></td>
+            <td><%= item["present"] %></td>
+            <td><%= item["missing_ids"].size %></td>
+            <td>
+              <%= safe_join([("Renamed because the name is taken" if item["renamed"]),
+                             ("Will be private until your account is 3 days old" if item["made_private"])].compact, "; ") %>
+            </td>
+          <% end %>
+        </tr>
+      <% end %>
+    </tbody>
+  </table>
+  <p>You have <%= sets["owned"] %> of <%= PostSet::MAX_SETS_PER_USER %> sets; this restores <%= sets["new"] %> new.</p>
+<% end %>
+<% if sets["conflict"] %>
+  <div class="box-section background-red"><p><%= sets["conflict"] %></p></div>
+<% end %>
+
+<h2>Profile</h2>
+<table class="striped autofit">
+  <tbody>
+    <% profile["fields"].each do |field, info| %>
+      <%
+        state = if info["backup_empty"]
+                  "empty"
+                elsif !info["differs"]
+                  "unchanged"
+                elsif info["current_empty"]
+                  "restorable"
+                else
+                  "replaceable"
+                end
+      %>
+      <tr><td><%= profile_label[field] %></td><td><%= profile_text[state] %></td></tr>
+    <% end %>
+    <tr>
+      <td>Avatar</td>
+      <td>
+        <% avatar = profile["avatar"] %>
+        <% if avatar.nil? %>
+          none in the backup
+        <% elsif !avatar["usable"] %>
+          post #<%= avatar["post_id"] %> is <%= avatar["reason"] == "deleted" ? "deleted" : "not on this site" %> (skipped)
+        <% elsif !avatar["differs"] %>
+          same as yours
+        <% else %>
+          <%= link_to "post ##{avatar['post_id']}", post_path(avatar["post_id"]) %>
+          <%= avatar["current_empty"] ? "will be restored" : "differs from yours (kept unless you choose to replace it)" %>
+          <% if avatar["cropped"] %>— it was cropped; the crop isn't in the backup, so crop it again afterwards<% end %>
+        <% end %>
+      </td>
+    </tr>
+  </tbody>
+</table>
+
+<h2>Restore</h2>
+<%= form_tag(confirm_maintenance_user_data_import_path(import), class: "simple_form") do %>
+  <% favorites_ok = favorites["new"] > 0 && favorites["conflict"].nil? %>
+  <% sets_ok = sets["items"].any? && sets["conflict"].nil? %>
+  <div class="input">
+    <label><%= check_box_tag "import[favorites]", "1", favorites_ok, disabled: !favorites_ok %> Favorites</label>
+    <% if favorites["conflict"] %>
+      <span class="hint">Not possible: see above.</span>
+    <% elsif favorites["new"] == 0 %>
+      <span class="hint">Nothing to add.</span>
+    <% end %>
+  </div>
+  <div class="input">
+    <label><%= check_box_tag "import[sets]", "1", sets_ok, disabled: !sets_ok %> Sets</label>
+    <% if sets["conflict"] %>
+      <span class="hint">Not possible: see above.</span>
+    <% elsif sets["items"].empty? %>
+      <span class="hint">Nothing to add.</span>
+    <% end %>
+  </div>
+  <div class="input">
+    <label><%= check_box_tag "import[profile]", "1", false %> Profile (fills in empty fields only)</label>
+  </div>
+  <% if profile["replace_relevant"] %>
+    <div class="input">
+      <label><%= check_box_tag "import[replace_profile]", "1", false %> Replace my current profile values with the backup's</label>
+    </div>
+  <% end %>
+  <p><strong>Each account can import one backup.</strong> Once you start, you can't import another file, so check that this is the right backup. To use a different one, cancel this upload first.</p>
+  <div class="input">
+    <%= submit_tag "Start import" %>
+  </div>
+<% end %>
+
+<%= button_to "Cancel", maintenance_user_data_import_path(import), method: :delete %>
