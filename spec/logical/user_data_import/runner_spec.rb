@@ -407,11 +407,11 @@ RSpec.describe UserDataImport::Runner do
       expect(UserDataImport.where(id: [import.id, kept.id]).pluck(:id)).to eq([kept.id])
     end
 
-    it "clears the IP of imports that failed over a week ago" do
+    it "clears the IP of imports that failed over 90 days ago" do
       old = create_import(user, parse_backup, status: "failed")
-      old.update_columns(finished_at: 8.days.ago)
+      old.update_columns(finished_at: 91.days.ago)
       recent = create_import(create(:user), parse_backup, status: "failed")
-      recent.update_columns(finished_at: 6.days.ago)
+      recent.update_columns(finished_at: 89.days.ago)
 
       UserDataImport.prune!
       expect(old.reload.creator_ip_addr).to be_nil

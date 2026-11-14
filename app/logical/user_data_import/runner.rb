@@ -189,7 +189,7 @@ class UserDataImport
     end
 
     def scoped_as_user(&)
-      # The IP is cleared a week after a failure; a later resume runs as 127.0.0.1 like other jobs.
+      # The IP is cleared 90 days after a failure; a later resume runs as 127.0.0.1 like other jobs.
       CurrentUser.scoped(@user, import.creator_ip_addr&.to_s || "127.0.0.1", &)
     end
 

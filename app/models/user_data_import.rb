@@ -7,7 +7,7 @@
 # cancelled or replaced. A failed import keeps its document so it can always be resumed.
 #
 # creator_ip_addr is the uploader's IP, used for what the import creates. It's only kept while
-# the import may still run: completion clears it, and so does DailyPruneJob a week after an
+# the import may still run: completion clears it, and so does DailyPruneJob 90 days after an
 # import failed (a later resume then runs as 127.0.0.1, like other background jobs).
 #
 # Ownership: a worker claims the row with a random run_token and a lease. Every write
