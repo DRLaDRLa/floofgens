@@ -4,6 +4,7 @@ module LinkHelper
   DECORATABLE_DOMAINS = [
     "floofgens.net",
     "e621.net",
+    "e6ai.net",
     #
     # Aggregators
     "linktr.ee",
