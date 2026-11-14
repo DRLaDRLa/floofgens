@@ -66,7 +66,7 @@ class UserDataImport < ApplicationRecord
     # Importing needs a verified account, and deleting an account unverifies it (UserDeletion
     # removes its imports too; this catches an upload that raced the deletion).
     where(id: joins(:user).where.not(users: { email_verification_key: nil }).select(:id)).delete_all
-    where(status: "failed").where(finished_at: ...7.days.ago).where.not(creator_ip_addr: nil)
+    where(status: "failed").where(finished_at: ...90.days.ago).where.not(creator_ip_addr: nil)
                            .update_all(creator_ip_addr: nil, updated_at: Time.current)
   end
 
