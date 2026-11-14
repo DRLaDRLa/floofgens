@@ -16,7 +16,7 @@ module UserDataImportHelpers
   def create_import(user, document, **options)
     UserDataImport.create!(
       user: user, document: document.to_storage, status: options.fetch(:status, "queued"), queued_at: Time.current,
-      import_favorites: options.fetch(:favorites, true), import_sets: options.fetch(:sets, true),
+      creator_ip_addr: "127.0.0.1", import_favorites: options.fetch(:favorites, true), import_sets: options.fetch(:sets, true),
       import_profile: options.fetch(:profile, false), replace_profile: options.fetch(:replace_profile, false)
     )
   end

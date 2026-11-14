@@ -17,6 +17,8 @@ class CreateUserDataImports < ActiveRecord::Migration[8.1]
       t.boolean :import_profile, null: false, default: false
       t.boolean :replace_profile, null: false, default: false
 
+      # Cleared once the import is finished with (see UserDataImport#complete! and .prune!).
+      t.inet :creator_ip_addr
       t.text :file_name
       t.integer :file_size
 

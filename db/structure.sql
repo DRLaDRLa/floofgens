@@ -2937,6 +2937,7 @@ CREATE TABLE public.user_data_imports (
     import_sets boolean DEFAULT false NOT NULL,
     import_profile boolean DEFAULT false NOT NULL,
     replace_profile boolean DEFAULT false NOT NULL,
+    creator_ip_addr inet,
     file_name text,
     file_size integer,
     document jsonb,

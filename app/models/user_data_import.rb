@@ -6,6 +6,10 @@
 # Each user gets one import (unique index on user_id). Until it's confirmed, the upload can be
 # cancelled or replaced. A failed import keeps its document so it can always be resumed.
 #
+# creator_ip_addr is the uploader's IP, used for what the import creates. It's only kept while
+# the import may still run: completion clears it, and so does DailyPruneJob a week after an
+# import failed (a later resume then runs as 127.0.0.1, like other background jobs).
+#
 # Ownership: a worker claims the row with a random run_token and a lease. Every write
 # transaction starts with #fence!, which locks the row and checks the token, so a worker
 # that lost its lease can neither write nor change the status. Terminal transitions
@@ -53,14 +57,17 @@ class UserDataImport < ApplicationRecord
   end
 
   # Called by DailyPruneJob. Rows that hold a set mapping are never deleted, except for
-  # deleted accounts.
+  # unverified accounts.
   def self.prune!
     where(needs_reindex: true).where("status = 'failed' OR (status = 'running' AND lease_expires_at < now())").find_each do |import|
       Runner.reconcile_index!(import)
     end
     where(status: "pending").where(created_at: ...1.day.ago).where(set_map: {}).delete_all
-    # UserDeletion already removes these. This catches an upload that raced the deletion.
-    where(id: joins(:user).where(users: { bcrypt_password_hash: UserDeletion::LOCKED_PASSWORD_HASH }).select(:id)).delete_all
+    # Importing needs a verified account, and deleting an account unverifies it (UserDeletion
+    # removes its imports too; this catches an upload that raced the deletion).
+    where(id: joins(:user).where.not(users: { email_verification_key: nil }).select(:id)).delete_all
+    where(status: "failed").where(finished_at: ...7.days.ago).where.not(creator_ip_addr: nil)
+                           .update_all(creator_ip_addr: nil, updated_at: Time.current)
   end
 
   # Must be the first statement of every write transaction. Locks the row (normal favorite and
@@ -149,7 +156,7 @@ class UserDataImport < ApplicationRecord
     transaction do
       fence!(token)
       self.class.where(id: id).update_all(
-        status: "completed", step: nil, document: nil, run_token: nil, lease_expires_at: nil,
+        status: "completed", step: nil, document: nil, creator_ip_addr: nil, run_token: nil, lease_expires_at: nil,
         finished_at: Time.current, updated_at: Time.current
       )
     end

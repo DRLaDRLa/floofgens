@@ -22,7 +22,7 @@ RSpec.describe UserDataImport::Runner do
       expect(run_import(import)).to be_is_completed
       base = Time.utc(2026, 3, 1, 10)
       expect(Favorite.for_user(user.id).order(:created_at).pluck(:post_id, :created_at)).to eq([
-        [190_900, base], [190_012, base + Rational(1, 1_000_000)], [190_450, base + Rational(2, 1_000_000)],
+        [190_900, base], [190_012, base + Rational(1, 1_000)], [190_450, base + Rational(2, 1_000)],
       ])
       expect(PostSets::Favorites.new(user, 1, limit: 10).posts.map(&:id)).to eq([190_450, 190_012, 190_900])
     end
@@ -396,15 +396,32 @@ RSpec.describe UserDataImport::Runner do
   end
 
   describe "pruning" do
-    it "deletes the imports of deleted accounts, set mapping and all" do
+    it "deletes the imports of unverified accounts, set mapping and all" do
       import = create_import(user, parse_backup, status: "completed")
       import.update_columns(set_map: { "1:2026-01-01T12:00:00Z" => { "post_set_id" => 1, "missing" => [] } })
       kept = create_import(create(:user), parse_backup, status: "completed")
       kept.update_columns(set_map: import.set_map)
 
-      user.update_columns(bcrypt_password_hash: UserDeletion::LOCKED_PASSWORD_HASH)
+      user.update_columns(email_verification_key: "1") # what UserDeletion does
       UserDataImport.prune!
       expect(UserDataImport.where(id: [import.id, kept.id]).pluck(:id)).to eq([kept.id])
+    end
+
+    it "clears the IP of imports that failed over a week ago" do
+      old = create_import(user, parse_backup, status: "failed")
+      old.update_columns(finished_at: 8.days.ago)
+      recent = create_import(create(:user), parse_backup, status: "failed")
+      recent.update_columns(finished_at: 6.days.ago)
+
+      UserDataImport.prune!
+      expect(old.reload.creator_ip_addr).to be_nil
+      expect(recent.reload.creator_ip_addr).to be_present
+      expect(old.document).to be_present # still resumable
+    end
+
+    it "clears the IP once the import completes" do
+      import = run_import(create_import(user, parse_backup))
+      expect(import).to have_attributes(status: "completed", creator_ip_addr: nil)
     end
   end
 

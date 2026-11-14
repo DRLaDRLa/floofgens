@@ -42,12 +42,20 @@ RSpec.describe UserDataImport::Document do
       expect(document.favorites.map(&:post_id)).to eq([5, 900, 12, 450])
     end
 
-    it "spreads favorites with the same timestamp a microsecond apart, in file order" do
+    it "spreads favorites with the same timestamp a millisecond apart, in file order" do
       base = Time.utc(2026, 3, 1, 10)
-      document = parse_backup(favorites: { "900" => time, "12" => time, "450" => time, "7" => "2026-03-01T10:00:00.000001Z" })
+      document = parse_backup(favorites: { "900" => time, "12" => time, "450" => time, "7" => "2026-03-01T10:00:00.001Z" })
       expect(document.favorites.map { |fav| [fav.post_id, fav.favorited_at] }).to eq([
-        [900, base], [12, base + Rational(1, 1_000_000)], [450, base + Rational(2, 1_000_000)], [7, base + Rational(3, 1_000_000)],
+        [900, base], [12, base + Rational(1, 1_000)], [450, base + Rational(2, 1_000)], [7, base + Rational(3, 1_000)],
       ])
+    end
+
+    it "accepts 1,000 favorites in one second and rejects 1,001 as tampered" do
+      favorites = (3..1_002).index_with { time }
+      expect(parse_backup(favorites: favorites).favorites.last.favorited_at).to eq(Time.utc(2026, 3, 1, 10) + Rational(999, 1_000))
+
+      favorites[1_003] = time
+      expect(errors_for_backup(favorites: favorites)).to eq(["favorites: 1001 favorites at 2026-03-01T10:00:00Z, the maximum in one second is 1000"])
     end
 
     it "keeps the file order through storage, where jsonb sorts object keys" do
@@ -75,7 +83,7 @@ RSpec.describe UserDataImport::Document do
       expect(max).to eq(200_000)
       # More favorites than e6ai has posts: only the count limit is under test here.
       stub_const("#{described_class}::MAX_POST_ID", described_class::MAX_SET_ID)
-      favorites = (1_000_001..(1_000_000 + max)).to_h { |id| [id.to_s, time] }
+      favorites = (1_000_001..(1_000_000 + max)).to_h { |id| [id.to_s, Time.utc(2025, 1, 1).advance(seconds: id).iso8601] }
       expect(parse_backup(favorites: favorites).favorites.size).to eq(max)
 
       favorites["1"] = time
@@ -188,8 +196,8 @@ RSpec.describe UserDataImport::Document do
     end
 
     it "rejects timestamps outside the allowed range" do
-      expect { parse_backup(favorites: { 3 => "2022-10-17T00:00:00Z" }) }.not_to raise_error
-      expect(errors_for_backup(favorites: { 3 => "2022-10-16T23:59:59Z" })).to eq(["favorites.3: 2022-10-16T23:59:59Z is outside the allowed range"])
+      expect { parse_backup(favorites: { 3 => "2022-10-17T19:00:00Z" }) }.not_to raise_error
+      expect(errors_for_backup(favorites: { 3 => "2022-10-17T18:59:59Z" })).to eq(["favorites.3: 2022-10-17T18:59:59Z is outside the allowed range"])
       expect(errors_for_backup(favorites: { 3 => "2026-11-10T03:00:00Z" })).to eq(["favorites.3: 2026-11-10T03:00:00Z is outside the allowed range"])
       expect(errors_for_hash(backup_hash.merge("exported_at" => "2022-10-16T00:00:00Z"))).to eq(["exported_at: 2022-10-16T00:00:00Z is outside the allowed range"])
     end

@@ -51,6 +51,25 @@ RSpec.describe Maintenance::User::DataImportsController do
     end
   end
 
+  describe "account age" do
+    let(:user) { create(:user, created_at: 2.hours.ago) }
+
+    before { sign_in_as(user) }
+
+    it "refuses accounts younger than a day" do
+      get new_maintenance_user_data_import_path
+      expect(response).to have_http_status(:forbidden)
+      expect { upload(backup_json) }.not_to(change(UserDataImport, :count))
+      expect(response).to have_http_status(:forbidden)
+    end
+
+    it "lets them in while age checks are disabled" do
+      allow(Danbooru.config.custom_configuration).to receive(:disable_age_checks?).and_return(true)
+      upload(backup_json)
+      expect(response).to redirect_to(maintenance_user_data_import_path(UserDataImport.last))
+    end
+  end
+
   describe "authentication" do
     it "redirects anonymous users to the login page" do
       get new_maintenance_user_data_import_path
@@ -91,7 +110,7 @@ RSpec.describe Maintenance::User::DataImportsController do
 
         import = UserDataImport.last
         expect(response).to redirect_to(maintenance_user_data_import_path(import))
-        expect(import).to have_attributes(status: "pending", user_id: user.id, file_name: "backup.json")
+        expect(import).to have_attributes(status: "pending", user_id: user.id, file_name: "backup.json", creator_ip_addr: IPAddr.new("127.0.0.1"))
         expect(import.preview["favorites"]).to include("new" => 1, "missing_count" => 1, "missing" => [193_099])
 
         get maintenance_user_data_import_path(import)

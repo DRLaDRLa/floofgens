@@ -10,6 +10,7 @@ module Maintenance
       before_action :member_only
       before_action :reject_api_key_auth
       before_action :reject_bearer_auth
+      before_action :ensure_old_enough, only: %i[new create]
       before_action :load_import, only: %i[show destroy confirm resume]
 
       # Per user, not per import record.
@@ -17,6 +18,9 @@ module Maintenance
       UPLOAD_PERIOD = 1.hour
       RUN_LIMIT = 5
       RUN_PERIOD = 1.day
+      # Keeps throwaway accounts from importing doctored backups to game favorites.
+      # User#younger_than skips this while Danbooru.config.disable_age_checks? is on.
+      MIN_ACCOUNT_AGE = 1.day
 
       ONE_IMPORT_MESSAGE = "Each account can import one backup, and you've already started yours."
 
@@ -54,7 +58,7 @@ module Maintenance
           UserDataImport.where(user_id: CurrentUser.id, status: "pending").delete_all
           UserDataImport.create!(
             user: CurrentUser.user, document: document.to_storage, preview: UserDataImport::Runner.preview_from(plan),
-            file_name: file.try(:original_filename).to_s.truncate(255), file_size: file.size
+            creator_ip_addr: CurrentUser.ip_addr, file_name: file.try(:original_filename).to_s.truncate(255), file_size: file.size
           )
         end
         redirect_to maintenance_user_data_import_path(import)
@@ -113,6 +117,12 @@ module Maintenance
 
       def ensure_enabled
         render_expected_error(:forbidden, "Importing user data is currently disabled.") unless Danbooru.config.enable_user_data_import?
+      end
+
+      def ensure_old_enough
+        return unless CurrentUser.user.younger_than(MIN_ACCOUNT_AGE)
+
+        render_expected_error(:forbidden, "Your account must be at least a day old to import data.")
       end
 
       def load_import

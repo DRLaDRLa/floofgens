@@ -189,8 +189,8 @@ class UserDataImport
     end
 
     def scoped_as_user(&)
-      # The import doesn't keep the uploader's IP; 127.0.0.1 is what background jobs use.
-      CurrentUser.scoped(@user, &)
+      # The IP is cleared a week after a failure; a later resume runs as 127.0.0.1 like other jobs.
+      CurrentUser.scoped(@user, import.creator_ip_addr&.to_s || "127.0.0.1", &)
     end
 
     def fenced(&)
@@ -410,7 +410,7 @@ class UserDataImport
                 name: names[0], shortname: names[1], description: set.description,
                 is_public: item["is_public"], transfer_on_delete: set.transfer_on_delete, post_ids: item["post_ids"],
                 created_at: set.created_at, updated_at: set.updated_at,
-                creator: @user, restoring: true
+                creator: @user, creator_ip_addr: import.creator_ip_addr, restoring: true
               )
             end
             import.record_set_mapping!(set.map_key, post_set.id, item["missing_ids"])

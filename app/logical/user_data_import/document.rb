@@ -19,7 +19,7 @@ class UserDataImport
   #
   # jsonb doesn't keep object key order, so the favorites' order in the file is captured here
   # as "favorite_order" (an array) and stored alongside. It breaks ties between favorites with
-  # the same timestamp, which are then spread out by a microsecond each (see #spread_ties).
+  # the same timestamp, which are then spread out by a millisecond each (see #spread_ties).
   class Document
     class Invalid < StandardError
       attr_reader :errors
@@ -47,9 +47,12 @@ class UserDataImport
     ].freeze
     MAX_SET_ID = 2_147_483_647
     MAX_TIMESTAMP_LENGTH = 40
-    # e6ai's first post.
-    EARLIEST_TIME = Time.utc(2022, 10, 17)
+    # e6ai's first post was at 2022-10-17 18:41:38 UTC; rounded up to the hour.
+    EARLIEST_TIME = Time.utc(2022, 10, 17, 19)
     CLOCK_SKEW = 1.day
+    # Same-second favorites are spread a millisecond apart, so a second holds at most this many.
+    # Nobody favorites that fast; more means the file was edited.
+    MAX_FAVORITES_PER_SECOND = 1_000
     MAX_ERRORS = 20
 
     ID_KEY = /\A[1-9]\d{0,9}\z/
@@ -199,17 +202,24 @@ class UserDataImport
         @favorites << FavoriteEntry.new(key.to_i, time, file_index[key]) if time
       end
       @favorites.sort_by! { |fav| [fav.favorited_at, fav.file_index] }
+      return if @errors.any?
+
+      busiest, count = @favorites.map { |fav| fav.favorited_at.to_i }.tally.max_by { |_second, n| n }
+      if count.to_i > MAX_FAVORITES_PER_SECOND
+        return error("favorites: #{count} favorites at #{Time.at(busiest).utc.iso8601}, the maximum in one second is #{MAX_FAVORITES_PER_SECOND}")
+      end
+
       spread_ties
     end
 
     # The export has whole seconds, so favorites made in the same second share a timestamp.
-    # Each one after the first is moved a microsecond past the one before it, in file order,
+    # Each one after the first is moved a millisecond past the one before it, in file order,
     # so lists ordered by created_at show them in their original order. Deterministic, so a
     # resumed run computes the same times.
     def spread_ties
       previous = nil
       @favorites.each do |fav|
-        fav.favorited_at = previous + Rational(1, 1_000_000) if previous && fav.favorited_at <= previous
+        fav.favorited_at = previous + Rational(1, 1_000) if previous && fav.favorited_at <= previous
         previous = fav.favorited_at
       end
     end
