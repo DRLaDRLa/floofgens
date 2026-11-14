@@ -19,7 +19,7 @@
     <tr><td>Already in your favorites</td><td><%= favorites["already"] %></td></tr>
     <tr><td>Posts not on this site (skipped)</td><td><%= favorites["missing_count"] %></td></tr>
     <% if favorites["busy_count"].to_i > 0 %>
-      <tr><td>Posts temporarily unavailable (skipped)</td><td><%= favorites["busy_count"] %></td></tr>
+      <tr><td>Posts whose favorites are being moved to another post right now (skipped)</td><td><%= favorites["busy_count"] %></td></tr>
     <% end %>
     <tr><td>Room left in your favorites</td><td><%= favorites["capacity"] %></td></tr>
   </tbody>

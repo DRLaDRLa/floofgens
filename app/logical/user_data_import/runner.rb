@@ -178,6 +178,8 @@ class UserDataImport
       @transfer_flag ||= Post.flag_value_for("favorites_transfer_in_progress")
     end
 
+    # A moderator is moving this post's favorites to its parent (TransferFavoritesJob).
+    # FavoritesController refuses to favorite such posts too, so the import skips them.
     def busy?(post_id)
       @posts[post_id][0].anybits?(transfer_flag)
     end

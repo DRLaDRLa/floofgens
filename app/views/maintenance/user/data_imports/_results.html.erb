@@ -27,7 +27,7 @@
       <% end %>
       <% unavailable = results.dig("favorites", "busy").to_a + results.dig("favorites", "unavailable").to_a %>
       <% if unavailable.any? %>
-        <tr><td>Posts temporarily unavailable (skipped; resuming retries them)</td><td><%= unavailable.size %></td></tr>
+        <tr><td>Posts being moved or removed during the import (skipped)</td><td><%= unavailable.size %></td></tr>
       <% end %>
     </tbody>
   </table>

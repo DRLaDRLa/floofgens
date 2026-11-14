@@ -37,6 +37,7 @@ class CreateUserDataImports < ActiveRecord::Migration[8.1]
 
       # One import per user. An unconfirmed upload is replaced by deleting it first.
       t.index :user_id, unique: true
+      t.index :run_token, unique: true
     end
   end
 end

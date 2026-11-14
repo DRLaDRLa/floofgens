@@ -52,12 +52,15 @@ class UserDataImport < ApplicationRecord
     merged.select { |_key, entry| owned.include?(entry["post_set_id"]) }
   end
 
-  # Called by DailyPruneJob. Rows that hold a set mapping are never deleted.
+  # Called by DailyPruneJob. Rows that hold a set mapping are never deleted, except for
+  # deleted accounts.
   def self.prune!
     where(needs_reindex: true).where("status = 'failed' OR (status = 'running' AND lease_expires_at < now())").find_each do |import|
       Runner.reconcile_index!(import)
     end
     where(status: "pending").where(created_at: ...1.day.ago).where(set_map: {}).delete_all
+    # UserDeletion already removes these. This catches an upload that raced the deletion.
+    where(id: joins(:user).where(users: { bcrypt_password_hash: UserDeletion::LOCKED_PASSWORD_HASH }).select(:id)).delete_all
   end
 
   # Must be the first statement of every write transaction. Locks the row (normal favorite and
@@ -90,8 +93,26 @@ class UserDataImport < ApplicationRecord
     scope.update_all(needs_reindex: false)
   end
 
-  # Applies a shallow-per-section merge of `patch` into results, in the database, without
-  # loading the column (so concurrent readers never see a half-written hash).
+  # ---------- results ---------- #
+  #
+  # `results` holds what the results page and the JSON report show. The job fills it in as it
+  # goes, so the page can show progress while it runs:
+  #
+  #   "baseline"  => what the first run set out to do (favorites to add, already present, sets)
+  #   "phases"    => { "profile" | "sets" | "favorites" => "done" }; a resumed run skips these
+  #   "favorites" => { "imported" => count, "missing" | "busy" | "unavailable" => [post ids] }
+  #   "sets"      => { "created" | "merged" | "failed" => { source set id => details } }
+  #   "profile"   => what happened to each field and the avatar
+  #
+  # The helpers below change one key at a time with a single UPDATE instead of loading the
+  # record, changing the hash and saving it:
+  # - They run inside the same fenced transaction as the writes they describe. If a batch rolls
+  #   back, its count goes with it, so a resumed run never counts anything twice.
+  # - A save would write back the whole hash, overwriting anything else stored since this copy
+  #   was loaded. Changing only the one key leaves the rest alone.
+
+  # Merges each section of `patch` into that section of results, e.g.
+  # merge_results!("phases" => { "sets" => "done" }) leaves the other phases in place.
   def merge_results!(patch)
     patch.each do |section, values|
       self.class.where(id: id).update_all([<<~SQL.squish, section.to_s, section.to_s, values.to_json])
@@ -100,7 +121,8 @@ class UserDataImport < ApplicationRecord
     end
   end
 
-  # Adds `amount` to results[section][key], creating either if missing.
+  # Adds `amount` to results[section][key], creating either if missing. Used for the running
+  # favorites count, one batch at a time.
   def increment_result!(section, key, amount)
     self.class.where(id: id).update_all([<<~SQL.squish, section.to_s, section.to_s, key.to_s, section.to_s, key.to_s, amount])
       results = jsonb_set(results, ARRAY[?],
@@ -108,7 +130,8 @@ class UserDataImport < ApplicationRecord
     SQL
   end
 
-  # Sets results[path...] = value. Every parent must already exist (see Runner#record_baseline).
+  # Sets results[path...] = value, e.g. put_result!(["sets", "created", 7], {...}) for one set.
+  # Every parent must already exist (see Runner#record_baseline).
   def put_result!(path, value)
     self.class.where(id: id).update_all([
       "results = jsonb_set(results, ?::text[], ?::jsonb, true)", "{#{path.join(',')}}", value.to_json,

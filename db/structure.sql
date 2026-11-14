@@ -6117,6 +6117,13 @@ CREATE INDEX index_uploads_on_uploader_ip_addr ON public.uploads USING btree (up
 
 
 --
+-- Name: index_user_data_imports_on_run_token; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX index_user_data_imports_on_run_token ON public.user_data_imports USING btree (run_token);
+
+
+--
 -- Name: index_user_data_imports_on_user_id; Type: INDEX; Schema: public; Owner: -
 --
 

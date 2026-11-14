@@ -395,6 +395,19 @@ RSpec.describe UserDataImport::Runner do
     end
   end
 
+  describe "pruning" do
+    it "deletes the imports of deleted accounts, set mapping and all" do
+      import = create_import(user, parse_backup, status: "completed")
+      import.update_columns(set_map: { "1:2026-01-01T12:00:00Z" => { "post_set_id" => 1, "missing" => [] } })
+      kept = create_import(create(:user), parse_backup, status: "completed")
+      kept.update_columns(set_map: import.set_map)
+
+      user.update_columns(bcrypt_password_hash: UserDeletion::LOCKED_PASSWORD_HASH)
+      UserDataImport.prune!
+      expect(UserDataImport.where(id: [import.id, kept.id]).pluck(:id)).to eq([kept.id])
+    end
+  end
+
   it "restores a large backup without truncating it" do
     template = create(:post).attributes.except("id", "md5", "change_seq")
     ids = Post.insert_all!(Array.new(20_000) { |i| template.merge("md5" => Digest::MD5.hexdigest("import-#{i}")) }, returning: :id).rows.flatten
