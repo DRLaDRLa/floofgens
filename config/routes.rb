@@ -150,6 +150,12 @@ Rails.application.routes.draw do
       resource :email_change, only: %i[new create]
       resource :dmail_filter, only: %i[edit update]
       resource :avatar, only: %i[edit update]
+      resources :data_imports, only: %i[new create show destroy] do
+        member do
+          post :confirm
+          post :resume
+        end
+      end
     end
   end
 

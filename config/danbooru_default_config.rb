@@ -612,6 +612,12 @@ module Danbooru
       true
     end
 
+    # Whether users can import a data backup (favorites, sets, profile). When off, the settings
+    # entry is hidden, every importer page returns 403 and queued imports wait until it's back on.
+    def enable_user_data_import?
+      true
+    end
+
     # Whether the OAuth2 / OpenID Connect provider is enabled. Requires a signing key.
     def enable_oauth_provider?
       false

@@ -28,6 +28,18 @@
   </tab-body>
 </tab-entry>
 
+<% if CurrentUser.user.is_member? && Danbooru.config.enable_user_data_import? %>
+<tab-entry tab="<%= tab_name %>" group="account" class="with-button" search="user account data import restore upload backup favorites sets profile json">
+  <tab-head>Import Data</tab-head>
+  <tab-body>
+    <%= link_to "Import User Data", new_maintenance_user_data_import_path, class: "st-button" %>
+  </tab-body>
+  <tab-hint>
+    Restore favorites, sets and profile from a backup exported by another e621ng-based site.
+  </tab-hint>
+</tab-entry>
+<% end %>
+
 <tab-entry tab="<%= tab_name %>" group="account" search="user account timezone">
   <tab-head>Time Zone</tab-head>
   <tab-body>

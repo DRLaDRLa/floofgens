@@ -15,6 +15,7 @@ class DailyPruneJob < ApplicationJob
       run_task { UserPasswordResetNonce.prune! }
       run_task { ExceptionLog.prune! unless Setting.disable_exception_prune? }
       run_task { Post.cleanup_stuck_favorite_transfer_flags! }
+      run_task { UserDataImport.prune! }
     end
   end
 

@@ -1,0 +1,41 @@
+<div id="c-maintenance-user-data-imports">
+  <div id="a-new">
+    <h1>Import User Data</h1>
+
+    <p>Restore your favorites, sets and profile from a backup file exported by another e621ng-based site.</p>
+
+    <ul>
+      <li>You'll see a preview before anything changes, and you choose what to restore.</li>
+      <li>Nothing already on your account is removed. Favorites and sets you already have are kept as they are.</li>
+      <li>Posts that don't exist on this site are skipped and listed in the results.</li>
+    </ul>
+
+    <p><strong>Each account can import one backup.</strong> You can cancel or replace an upload until you start the import, but once it has started you can't import another file.</p>
+
+    <% if @errors.present? %>
+      <div class="box-section background-red">
+        <p>This file can't be imported:</p>
+        <ul>
+          <% @errors.each do |error| %>
+            <li><%= error %></li>
+          <% end %>
+        </ul>
+      </div>
+    <% end %>
+
+    <%= form_tag(maintenance_user_data_imports_path, multipart: true, class: "simple_form") do %>
+      <div class="input">
+        <label for="file">Backup file (.json)</label>
+        <%= file_field_tag :file, accept: ".json,application/json" %>
+      </div>
+
+      <div class="input">
+        <%= submit_tag "Upload and preview" %>
+      </div>
+    <% end %>
+  </div>
+</div>
+
+<% content_for(:page_title) do %>
+  Import User Data
+<% end %>
