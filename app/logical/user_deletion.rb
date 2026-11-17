@@ -149,7 +149,7 @@ class UserDeletion
     end
 
     if user.younger_than(1.week) && !admin_deletion
-      raise ValidationError, "Account must be one week old to be deleted"
+      raise ValidationError, "Account can not be deleted: account is too new."
     end
 
     if !admin_deletion && !User.authenticate(user.name, password)

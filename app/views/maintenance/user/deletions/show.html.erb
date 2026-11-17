@@ -22,7 +22,7 @@
     <p>For moderation purposes some data like IP addresses and username history is kept for a period of time.
       Consult the <%= link_to "privacy policy", wiki_pages_path(title: "floof:privacy_policy") %> to learn more.</p>
 
-    <p>You must enter your password to deactivate your account. Accounts cannot be deactivated until they have existed for at least one week.</p>
+    <p>You must enter your password to deactivate your account.</p>
 
     <%= form_tag(maintenance_user_deletion_path, :method => :delete, :class => "simple_form") do %>
       <div class="input">

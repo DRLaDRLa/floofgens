@@ -500,8 +500,8 @@ module Danbooru
       10_000
     end
 
-    def launch_period_limit_exemption
-      nil
+    def launch_period_limit_modifiers
+      []
     end
 
     def user_feedback_expires_after
