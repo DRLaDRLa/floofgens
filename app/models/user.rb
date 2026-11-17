@@ -582,7 +582,7 @@ class User < ApplicationRecord
   module ThrottleMethods
     def throttle_reason(reason, timeframe = "hourly")
       reasons = {
-        REJ_NEWBIE: "can not yet perform this action. Account is too new",
+        REJ_NEWBIE: "can not yet perform this action: account is too new",
         REJ_LIMITED: "reached the #{timeframe} limit for this action",
       }
       reasons.fetch(reason, "unknown throttle reason, please report this as a bug")
@@ -593,7 +593,7 @@ class User < ApplicationRecord
         REJ_UPLOAD_HOURLY: "have reached your hourly upload limit",
         REJ_UPLOAD_EDIT: "have no remaining tag edits available",
         REJ_UPLOAD_LIMIT: "have reached your upload limit",
-        REJ_UPLOAD_NEWBIE: "cannot upload during your first week",
+        REJ_UPLOAD_NEWBIE: "cannot upload during your: account is too new",
         REJ_UPLOAD_DISABLED: "are not allowed to upload posts",
       }
       reasons.fetch(reason, "unknown upload rejection reason")
@@ -601,20 +601,27 @@ class User < ApplicationRecord
   end
 
   module LimitMethods
-    def launch_exempt?
-      created_at && Danbooru.config.launch_period_limit_exemption&.cover?(created_at.to_date)
+    def duration_for_creation_date(duration)
+      entries = Danbooru.config.launch_period_limit_modifiers
+      return duration if entries.blank?
+
+      signup_date = created_at.to_date
+      return duration if signup_date < entries.first[0]
+      entries.each_cons(2) do |(start_date, modifier), (next_date, _)|
+        return modifier.call(duration) if signup_date >= start_date && signup_date < next_date
+      end
+
+      duration
     end
 
     def younger_than(duration)
       return false if Danbooru.config.disable_age_checks?
-      return false if launch_exempt?
-      created_at > duration.ago
+      created_at > duration_for_creation_date(duration).ago
     end
 
     def older_than(duration)
       return true if Danbooru.config.disable_age_checks?
-      return true if launch_exempt?
-      created_at < duration.ago
+      created_at < duration_for_creation_date(duration).ago
     end
 
     def self.create_user_throttle(name, limiter, checker, newbie_duration)

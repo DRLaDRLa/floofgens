@@ -32,7 +32,7 @@ class UploadsController < ApplicationController
 
   def new
     if CurrentUser.can_upload_with_reason == :REJ_UPLOAD_NEWBIE
-      return access_denied("You can not upload during your first week.")
+      return access_denied("You can not upload: account is too new.")
     end
     @upload = Upload.new
     respond_with(@upload)

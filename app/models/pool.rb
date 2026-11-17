@@ -388,7 +388,7 @@ class Pool < ApplicationRecord
   def updater_can_remove_posts
     removed = post_ids_was - post_ids
     if removed.any? && !CurrentUser.user.can_remove_from_pools?
-      errors.add(:base, "You cannot removes posts from pools within the first week of sign up")
+      errors.add(:base, "You cannot removes posts from pools: account is too new.")
     end
   end
 

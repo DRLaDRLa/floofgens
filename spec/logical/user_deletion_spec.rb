@@ -278,7 +278,7 @@ RSpec.describe UserDeletion do
       it "raises ValidationError when the account is less than one week old" do
         user = create(:user, created_at: 1.day.ago)
         expect { described_class.new(user, password).delete! }
-          .to raise_error(UserDeletion::ValidationError, /one week old/)
+          .to raise_error(UserDeletion::ValidationError, /: account is too new\./)
       end
 
       it "raises ValidationError when the password is incorrect" do
