@@ -15,6 +15,7 @@ module LinkHelper
     "artstation.com",
     "archiveofourown.org",
     "aryion.com",
+    "blep.art",
     "derpibooru.org",
     "deviantart.com",
     "furaffinity.net",
