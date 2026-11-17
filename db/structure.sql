@@ -3162,6 +3162,48 @@ ALTER SEQUENCE public.user_password_reset_nonces_id_seq OWNED BY public.user_pas
 
 
 --
+-- Name: user_sessions; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.user_sessions (
+    id bigint NOT NULL,
+    user_id bigint NOT NULL,
+    secret_digest character varying NOT NULL,
+    site character varying NOT NULL,
+    remember boolean DEFAULT false NOT NULL,
+    user_agent text,
+    created_ip inet,
+    last_ip inet,
+    last_seen_at timestamp(6) without time zone NOT NULL,
+    expires_at timestamp(6) without time zone NOT NULL,
+    revoked_at timestamp(6) without time zone,
+    revoked_reason character varying,
+    legacy_key character varying,
+    created_at timestamp(6) without time zone NOT NULL,
+    updated_at timestamp(6) without time zone NOT NULL
+);
+
+
+--
+-- Name: user_sessions_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.user_sessions_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: user_sessions_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.user_sessions_id_seq OWNED BY public.user_sessions.id;
+
+
+--
 -- Name: user_statuses; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -3953,6 +3995,13 @@ ALTER TABLE ONLY public.user_password_reset_nonces ALTER COLUMN id SET DEFAULT n
 
 
 --
+-- Name: user_sessions id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.user_sessions ALTER COLUMN id SET DEFAULT nextval('public.user_sessions_id_seq'::regclass);
+
+
+--
 -- Name: user_statuses id; Type: DEFAULT; Schema: public; Owner: -
 --
 
@@ -4651,6 +4700,14 @@ ALTER TABLE ONLY public.user_name_change_requests
 
 ALTER TABLE ONLY public.user_password_reset_nonces
     ADD CONSTRAINT user_password_reset_nonces_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: user_sessions user_sessions_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.user_sessions
+    ADD CONSTRAINT user_sessions_pkey PRIMARY KEY (id);
 
 
 --
@@ -6305,6 +6362,27 @@ CREATE INDEX index_user_name_change_requests_on_user_id ON public.user_name_chan
 
 
 --
+-- Name: index_user_sessions_on_expires_at; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX index_user_sessions_on_expires_at ON public.user_sessions USING btree (expires_at);
+
+
+--
+-- Name: index_user_sessions_on_user_id_active; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX index_user_sessions_on_user_id_active ON public.user_sessions USING btree (user_id) WHERE (revoked_at IS NULL);
+
+
+--
+-- Name: index_user_sessions_on_user_id_and_legacy_key; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX index_user_sessions_on_user_id_and_legacy_key ON public.user_sessions USING btree (user_id, legacy_key) WHERE (legacy_key IS NOT NULL);
+
+
+--
 -- Name: index_user_statuses_on_user_id; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -6705,6 +6783,14 @@ ALTER TABLE ONLY public.mascots
 
 
 --
+-- Name: user_sessions fk_rails_9fa262d742; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.user_sessions
+    ADD CONSTRAINT fk_rails_9fa262d742 FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
+
+
+--
 -- Name: favorites fk_rails_a7668ef613; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -6823,6 +6909,7 @@ ALTER TABLE ONLY public.oauth_access_tokens
 SET search_path TO "$user", public;
 
 INSERT INTO "schema_migrations" (version) VALUES
+('20261117142430'),
 ('20261115234800'),
 ('20261112141709'),
 ('20261110120000'),
