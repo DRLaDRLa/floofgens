@@ -5,8 +5,6 @@
 <% elsif post.safeblocked? -%>
   <p>This image is unavailable in safe mode (<%= Danbooru.config.app_name %>). Disable safe mode to view
     (<%= link_to("learn more", help_page_path(id: "user_settings")) -%>).</p>
-<% elsif post.is_flash? -%>
-  <%= render("posts/partials/show/content/embedded/flash", post: post) -%>
 <% elsif post.is_video? -%>
   <%= render("posts/partials/show/content/embedded/video", post: post) -%>
 <% elsif !post.is_image? -%>
