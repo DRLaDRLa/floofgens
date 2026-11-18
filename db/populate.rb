@@ -57,7 +57,7 @@ DEFAULT_PASSWORD = ENV.fetch("PASSWORD", "hexerade")
 CurrentUser.user = User.system
 
 def api_request(path)
-  response = Faraday.get("https://e621.net#{path}", nil, user_agent: "e621ng/seeding")
+  response = Faraday.get("https://floofgens.net#{path}", nil, user_agent: "e621ng/seeding")
   JSON.parse(response.body)
 end
 
