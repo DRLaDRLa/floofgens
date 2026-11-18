@@ -35,7 +35,13 @@
 1. Download and install the [prerequisites](#prerequisites).
 1. Clone the repo with `git clone https://github.com/DRLaDRLa/floofgens.git`.
 1. `cd` into the repo.
-1. Copy the sample environment file with `cp .env.sample .env`.
+1. Copy the sample environment file with `cp .env.sample .env`. If you want to be able to run stock e621ng at the same time, make these changes:
+    ```
+    EXPOSED_SERVER_PORT=3001
+    EXPOSED_POSTGRES_PORT=34518
+    EXPOSED_REDIS_PORT=6378
+    ```
+    The website will be available at `http://localhost:3001` instead of `:3000`.
 1. WSL Only: Run the following commands:
     ```
     git config core.fileMode false
