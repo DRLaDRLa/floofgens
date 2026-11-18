@@ -31,10 +31,10 @@ RSpec.describe UserDataImport::Runner, "#favorites_batch" do
     UserStatus.for_user(admin.id).update_all(favorite_count: original_favorite_count)
   end
 
-  def in_thread(&block)
+  def in_thread(&)
     Thread.new do
       ActiveRecord::Base.connection_pool.with_connection do
-        CurrentUser.scoped(admin, &block)
+        CurrentUser.scoped(admin, &)
       rescue StandardError => e
         e
       end

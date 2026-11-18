@@ -76,7 +76,7 @@ RSpec.describe Danbooru::EnvironmentConfiguration do
     include_context "with e926 site profile"
 
     it "uses the config as written on the primary site" do
-      expect(Danbooru.config.app_name).to eq("e621")
+      expect(Danbooru.config.app_name).to eq("floofgens")
       expect(Danbooru.config.hostname).to eq(Danbooru.config.custom_configuration.hostname)
     end
 
@@ -109,18 +109,18 @@ RSpec.describe Danbooru::EnvironmentConfiguration do
     end
 
     it "bypasses overrides with primary_value" do
-      CurrentSite.with("e926") { expect(Danbooru.config.primary_value(:app_name)).to eq("e621") }
+      CurrentSite.with("e926") { expect(Danbooru.config.primary_value(:app_name)).to eq("floofgens") }
     end
 
     it "routes derived values through the overrides" do
       CurrentSite.with("e926") do
-        expect(Danbooru.config.contact_email).to eq("management@e926.net")
+        expect(Danbooru.config.contact_email).to eq("contact@e926.net")
         expect(Danbooru.config.totp_issuer).to eq("e926")
       end
     end
 
     it "keeps safe_app_name on the primary site" do
-      CurrentSite.with("e926") { expect(Danbooru.config.safe_app_name).to eq("e621") }
+      CurrentSite.with("e926") { expect(Danbooru.config.safe_app_name).to eq("floofgens") }
     end
 
     it "uses storage_base_url in the default storage manager" do
