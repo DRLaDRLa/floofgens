@@ -59,7 +59,7 @@ class LStorage extends StorageObject {
   // NOTE: these are HARD-CODED in theme_include.html.erb. Any changes must be reflected there as well.
   Theme = {
     Main: "bloodlust" as "bloodlust" | "hexagon" | "hotdog" | "pony" | "serpent",
-    Extra: "hexagon" as "aurora" | "autumn" | "fennec" | "hexagon" | "none" | "scales" | "space" | "spring" | "stars" | "winter",
+    Extra: "space" as "aurora" | "autumn" | "fennec" | "hexagon" | "none" | "scales" | "space" | "spring" | "stars" | "winter",
     Palette: "default" as "default" | "deut" | "trit",
     Font: "Verdana" as "Verdana" | "Lato" | "Lexend" | "Monospace" | "OpenDyslexic" | "OpenSans" | "ComicSans" | "Papyrus",
     Navbar: "top" as "top" | "bottom" | "none",
