@@ -91,6 +91,14 @@ module Danbooru
       app_name.gsub(/[^a-zA-Z0-9_-]/, "_")
     end
 
+    def hosting_mention_text
+      nil
+    end
+
+    def hosting_mention_link
+      nil
+    end
+
     # The default name to use for anyone who isn't logged in.
     def default_guest_name
       "Anonymous"

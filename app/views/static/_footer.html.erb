@@ -13,13 +13,16 @@
       <%# <%= link_to "Advertising", help_page_path(id: "advertising") %>
     </span>
     <span class="footer-right">
-      <span class="footer-running">Running <%= CurrentUser.is_staff? && Danbooru.config.server_name.present? ? "on #{Danbooru.config.server_name}" : "e621ng" %></span>
+      <% if Danbooru.config.hosting_mention_text.present? && Danbooru.config.hosting_mention_link.present? %>
+        <%= link_to Danbooru.config.hosting_mention_text, Danbooru.config.hosting_mention_link %>
+      <% end %>
       <span class="footer-version">
         <% if GitHelper.version.empty? %>
           v. unknown
         <% else %>
           v. <%= link_to GitHelper.version, GitHelper.version_url %>
         <% end %>
+        <%= CurrentUser.is_staff? && Danbooru.config.server_name.present? ? safe_join([tag.br, "running on #{Danbooru.config.server_name}"]) : "" %>
       </span>
       <%= link_to "Themes / Gestures", theme_path %>
       <% if CurrentUser.user.enable_keyboard_navigation %>

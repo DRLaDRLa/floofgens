@@ -74,6 +74,10 @@
       <%= link_to "Terms of Use", terms_of_use_path, rel: "terms-of-service" %>
       <span class="separator"></span>
       <%= link_to "Privacy", privacy_policy_path, rel: "privacy-policy" %>
+      <% if Danbooru.config.hosting_mention_text.present? && Danbooru.config.hosting_mention_link.present? %>
+        <br />
+        <%= link_to Danbooru.config.hosting_mention_text, Danbooru.config.hosting_mention_link %>
+      <% end %>
     </div>
   </section>
 </div></div>
