@@ -24,6 +24,20 @@
   </settings-body>
 </settings-entry>
 
+<!-- Import -->
+<settings-group name="import">Import</settings-group>
+
+<% if Danbooru.config.enable_user_data_import? %>
+  <settings-entry group="import" class="with-button" search="user account data import restore upload backup favorites sets profile json">
+    <settings-head>Import Data</settings-head>
+    <settings-body>
+      <%= link_to "Import User Data", new_maintenance_user_data_import_path, class: "st-button" %>
+    </settings-body>
+    <settings-hint>
+      Restore favorites, sets and profile from a backup exported from e6ai.net.
+    </settings-hint>
+  </settings-entry>
+<% end %>
 
 <!-- Security -->
 <settings-group name="security">Security</settings-group>
