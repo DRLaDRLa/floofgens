@@ -150,7 +150,7 @@ class UserPresenter
   end
 
   def commented_posts_count(template)
-    count = Post.fast_count("commenter:#{user.name}", enable_safe_mode: false)
+    count = Post.fast_count("commenter:#{user.name}", enable_safe_mode: false, required_tags: [])
     template.link_to(count, template.posts_path(tags: "commenter:#{user.name} order:comment_bumped"))
   end
 
@@ -163,7 +163,7 @@ class UserPresenter
   end
 
   def noted_posts_count(template)
-    count = Post.fast_count("noteupdater:#{user.name}", enable_safe_mode: false)
+    count = Post.fast_count("noteupdater:#{user.name}", enable_safe_mode: false, required_tags: [])
     template.link_to(count, template.posts_path(tags: "noteupdater:#{user.name} order:note"))
   end
 
