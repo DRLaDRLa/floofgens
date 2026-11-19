@@ -23,7 +23,7 @@ RSpec.describe "Content Security Policy" do
   end
 
   it "blocks all plugin content via object-src" do
-    get furid_path
+    get theme_path
     object_src = response.headers["Content-Security-Policy"].split(";").map(&:strip).find { |directive| directive.start_with?("object-src ") }
     expect(object_src.split).to contain_exactly("object-src", "'none'")
   end
