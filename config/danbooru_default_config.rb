@@ -1093,6 +1093,10 @@ If you have questions regarding this change, please \"DM the staff member\":[/dm
             desktop: { zone: nil },
             mobile: { zone: nil },
           },
+          popular: {
+            desktop: { zone: nil },
+            mobile: { zone: nil },
+          },
         },
       }
     end
