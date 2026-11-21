@@ -26,8 +26,8 @@ RSpec.describe Populate::Media::Fetch do
     allow(Danbooru.config.custom_configuration).to receive(:storage_manager).and_return(storage)
     [small, large, gone, missing] # created before WebMock is on
     WebMock.enable!
-    WebMock.disable_net_connect!(allow: ->(uri) { uri.host != "static1.e621.net" }) # OpenSearch stays reachable
-    stub_request(:get, %r{\Ahttps://static1\.e621\.net/}).to_return(status: 404)
+    WebMock.disable_net_connect!(allow: ->(uri) { uri.host != "static1.floofgens.net" }) # OpenSearch stays reachable
+    stub_request(:get, %r{\Ahttps://static1\.floofgens\.net/}).to_return(status: 404)
     [small, large].each do |post|
       %w[jpg webp].each { |ext| stub_request(:get, url(post, "preview", ext)).to_return(body: jpeg) }
     end
@@ -43,7 +43,7 @@ RSpec.describe Populate::Media::Fetch do
   end
 
   def url(post, kind, ext)
-    "https://static1.e621.net/data/#{[kind, post.md5[0, 2], post.md5[2, 2]].compact.join('/')}/#{post.md5}.#{ext}"
+    "https://static1.floofgens.net/data/#{[kind, post.md5[0, 2], post.md5[2, 2]].compact.join('/')}/#{post.md5}.#{ext}"
   end
 
   def exists?(post, type)
