@@ -10,7 +10,7 @@ module Populate
     # be fetched (deleted posts are signed-only, flash has no preview, 404s) gets placeholders, and
     # posts whose original was not fetched get a flat one so every post has a file on disk.
     class Fetch < Base
-      DEFAULT_HOST = "static1.e621.net"
+      DEFAULT_HOST = "static1.floofgens.net"
       USER_AGENT = "e621ng/seeding"
       BATCH_SIZE = 500
       RETRIES = 2
