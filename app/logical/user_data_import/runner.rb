@@ -494,7 +494,7 @@ class UserDataImport
                  end
         {
           "post_id" => backup[:avatar][:post_id], "cropped" => backup[:avatar][:cropped], "usable" => reason.nil?,
-          "reason" => reason, "current_empty" => @user.avatar_id.nil?, "differs" => @user.avatar_id != backup[:avatar][:post_id],
+          "reason" => reason, "current_empty" => !@user.has_avatar?, "differs" => @user.avatar_id != backup[:avatar][:post_id],
         }
       end
 
@@ -519,7 +519,7 @@ class UserDataImport
         report["avatar"] =
           if avatar.nil? then "none_in_backup"
           elsif !avatar["usable"] then "post_#{avatar['reason']}"
-          else profile_action(false, avatar["differs"], user.avatar_id.nil?)
+          else profile_action(false, avatar["differs"], !user.has_avatar?)
           end
         changes[:avatar_id] = avatar["post_id"] if %w[restored replaced].include?(report["avatar"])
         # The crop itself isn't in the backup, so the avatar is restored uncropped.

@@ -14,6 +14,11 @@ module Maintenance
       UPLOAD_LIMIT = 10
       UPLOAD_PERIOD = 1.hour
 
+      # The crop preview shows the chosen file from a blob: URL, before anything is uploaded.
+      content_security_policy only: :new do |policy|
+        policy.img_src(*policy.directives["img-src"], :blob)
+      end
+
       def new
       end
 
@@ -31,7 +36,9 @@ module Maintenance
       end
 
       def create
-        raise APIThrottled if RateLimiter.throttle!("avatar_upload:#{CurrentUser.id}", limit: UPLOAD_LIMIT, period: UPLOAD_PERIOD)
+        # Counted before checking, so concurrent uploads can't all pass on the same count
+        limiter = RateLimiter.new("avatar_upload:#{CurrentUser.id}", limit: UPLOAD_LIMIT, period: UPLOAD_PERIOD)
+        raise APIThrottled if limiter.hit! > UPLOAD_LIMIT
 
         file = params[:avatar_file]
         return upload_error("Choose an image to upload.") unless file.respond_to?(:path) && file.respond_to?(:size)
@@ -50,8 +57,8 @@ module Maintenance
           return upload_error("Invalid crop selection. Draw it again, or leave it empty to use the center of the image.")
         end
 
-        ImageSampler.generate_uploaded_avatar(file.path, CurrentUser.id, crop: crop == :none ? nil : crop)
-        CurrentUser.user.use_uploaded_avatar!
+        files = ImageSampler.uploaded_avatar_files(file.path, crop: crop == :none ? nil : crop)
+        CurrentUser.user.use_uploaded_avatar!(files)
 
         flash[:notice] = "Avatar updated"
         redirect_to user_path(CurrentUser.user)
@@ -59,6 +66,8 @@ module Maintenance
         upload_error("That file type isn't supported. Upload a JPEG, PNG, GIF, or WebP image.")
       rescue VipsCommand::Error
         upload_error("That image couldn't be read. Try saving it again or using a different file.")
+      ensure
+        files&.each_value(&:close!)
       end
 
       def update

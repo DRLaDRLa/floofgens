@@ -3,48 +3,47 @@
 require "rails_helper"
 
 RSpec.describe ImageSampler do
-  let(:sm) { instance_double(StorageManager::Local) }
-  let(:stored) { {} }
+  let(:files) { {} }
 
   before do
-    allow(Danbooru.config.custom_configuration).to receive_messages(storage_manager: sm, small_image_width: 256)
-    allow(sm).to receive(:store_avatar) do |io, _user_id, ext|
-      copy = Tempfile.new(["stored", ".#{ext}"], binmode: true)
-      FileUtils.cp(io.path, copy.path)
-      stored[ext] = copy
-    end
+    allow(Danbooru.config.custom_configuration).to receive(:small_image_width).and_return(256)
   end
 
-  after { stored.each_value(&:close!) }
+  after { files.each_value(&:close!) }
 
-  describe ".generate_uploaded_avatar" do
+  describe ".uploaded_avatar_files" do
     def generate_from(width, height, ext: ".png")
       Tempfile.create(["source", ext]) do |source|
         write_solid_image(source.path, width, height)
-        described_class.generate_uploaded_avatar(source.path, 42)
+        files.merge!(described_class.uploaded_avatar_files(source.path))
       end
     end
 
-    it "stores a jpg and a webp for the user" do
+    it "makes a jpg and a webp" do
       generate_from(600, 300)
-      expect(sm).to have_received(:store_avatar).with(anything, 42, "jpg")
-      expect(sm).to have_received(:store_avatar).with(anything, 42, "webp")
+      expect(files.keys).to contain_exactly("jpg", "webp")
+    end
+
+    it "leaves out the photo's metadata" do
+      files.merge!(described_class.uploaded_avatar_files(file_fixture("exif-orientation.jpg").to_s))
+      expect(VipsCommand.header_field(files["jpg"].path, "exif-data")).to be_nil
+      expect(VipsCommand.header_field(files["webp"].path, "exif-data")).to be_nil
     end
 
     it "crops a wide image to a square" do
       generate_from(600, 300)
-      expect(image_dimensions(stored["jpg"].path)).to eq([256, 256])
-      expect(image_dimensions(stored["webp"].path)).to eq([256, 256])
+      expect(image_dimensions(files["jpg"].path)).to eq([256, 256])
+      expect(image_dimensions(files["webp"].path)).to eq([256, 256])
     end
 
     it "crops a tall image to a square" do
       generate_from(300, 900, ext: ".jpg")
-      expect(image_dimensions(stored["jpg"].path)).to eq([256, 256])
+      expect(image_dimensions(files["jpg"].path)).to eq([256, 256])
     end
 
     it "scales a small image up to the avatar size" do
       generate_from(64, 64)
-      expect(image_dimensions(stored["jpg"].path)).to eq([256, 256])
+      expect(image_dimensions(files["jpg"].path)).to eq([256, 256])
     end
 
     context "with a crop selection" do
@@ -58,7 +57,7 @@ RSpec.describe ImageSampler do
               VipsCommand.operation("insert", base.path, blue.path, source.path, square[0], square[1], timeout: 10)
             end
           end
-          described_class.generate_uploaded_avatar(source.path, 42, crop: crop)
+          files.merge!(described_class.uploaded_avatar_files(source.path, crop: crop))
         end
       end
 
@@ -69,35 +68,34 @@ RSpec.describe ImageSampler do
 
       it "crops the selected square" do
         generate_with_square(600, 400, square: [300, 100, 200], crop: { x: 300, y: 100, w: 200 })
-        expect(image_dimensions(stored["jpg"].path)).to eq([256, 256])
-        expect(blue?(stored["jpg"].path, 10, 10)).to be true
-        expect(blue?(stored["jpg"].path, 245, 245)).to be true
+        expect(image_dimensions(files["jpg"].path)).to eq([256, 256])
+        expect(blue?(files["jpg"].path, 10, 10)).to be true
+        expect(blue?(files["jpg"].path, 245, 245)).to be true
       end
 
       it "leaves out the rest of the image" do
         generate_with_square(600, 400, square: [300, 100, 200], crop: { x: 0, y: 0, w: 200 })
-        expect(blue?(stored["jpg"].path, 128, 128)).to be false
+        expect(blue?(files["jpg"].path, 128, 128)).to be false
       end
 
       it "lines the selection up on an image larger than the working size" do
         generate_with_square(5000, 1000, square: [4000, 0, 1000], crop: { x: 4000, y: 0, w: 1000 })
-        expect(image_dimensions(stored["jpg"].path)).to eq([256, 256])
-        expect(blue?(stored["jpg"].path, 5, 5)).to be true
-        expect(blue?(stored["jpg"].path, 250, 250)).to be true
+        expect(image_dimensions(files["jpg"].path)).to eq([256, 256])
+        expect(blue?(files["jpg"].path, 5, 5)).to be true
+        expect(blue?(files["jpg"].path, 250, 250)).to be true
       end
 
       it "scales a small selection up to the avatar size" do
         generate_with_square(300, 300, square: [10, 10, 64], crop: { x: 10, y: 10, w: 64 })
-        expect(image_dimensions(stored["jpg"].path)).to eq([256, 256])
-        expect(blue?(stored["jpg"].path, 128, 128)).to be true
+        expect(image_dimensions(files["jpg"].path)).to eq([256, 256])
+        expect(blue?(files["jpg"].path, 128, 128)).to be true
       end
     end
 
     it "refuses a file that isn't a supported image" do
       expect do
-        described_class.generate_uploaded_avatar(file_fixture("staff_file.txt").to_s, 42)
+        described_class.uploaded_avatar_files(file_fixture("staff_file.txt").to_s)
       end.to raise_error(VipsCommand::UnsupportedFormat)
-      expect(sm).not_to have_received(:store_avatar)
     end
   end
 end

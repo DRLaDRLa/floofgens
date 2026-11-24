@@ -183,6 +183,12 @@ RSpec.describe Maintenance::User::AvatarsController do
         get new_maintenance_user_avatar_path
         expect(response).to have_http_status(:ok)
       end
+
+      it "lets the crop preview show the chosen file" do
+        get new_maintenance_user_avatar_path
+        img_src = response.headers["Content-Security-Policy"][/img-src [^;]+/]
+        expect(img_src).to include("blob:", "'self'", "data:")
+      end
     end
   end
 
@@ -205,12 +211,12 @@ RSpec.describe Maintenance::User::AvatarsController do
 
       before do
         sign_in_as(user)
-        allow(ImageSampler).to receive(:generate_uploaded_avatar)
+        allow(ImageSampler).to receive(:uploaded_avatar_files).and_return({})
       end
 
       it "stores the image and switches to it" do
         post maintenance_user_avatar_path, params: { avatar_file: image }
-        expect(ImageSampler).to have_received(:generate_uploaded_avatar).with(kind_of(String), user.id, crop: nil)
+        expect(ImageSampler).to have_received(:uploaded_avatar_files).with(kind_of(String), crop: nil)
         expect(user.reload.has_uploaded_avatar?).to be true
         expect(response).to redirect_to(user_path(user))
         expect(flash[:notice]).to eq("Avatar updated")
@@ -232,7 +238,7 @@ RSpec.describe Maintenance::User::AvatarsController do
 
       it "uses the center when no selection was drawn" do
         post maintenance_user_avatar_path, params: { avatar_file: image, avatar_crop_x: "", avatar_crop_y: "", avatar_crop_w: "" }
-        expect(ImageSampler).to have_received(:generate_uploaded_avatar).with(kind_of(String), user.id, crop: nil)
+        expect(ImageSampler).to have_received(:uploaded_avatar_files).with(kind_of(String), crop: nil)
       end
 
       context "with a crop selection" do
@@ -244,13 +250,13 @@ RSpec.describe Maintenance::User::AvatarsController do
 
         it "crops the selected square" do
           upload(100, 50, 300)
-          expect(ImageSampler).to have_received(:generate_uploaded_avatar).with(kind_of(String), user.id, crop: { x: 100, y: 50, w: 300 })
+          expect(ImageSampler).to have_received(:uploaded_avatar_files).with(kind_of(String), crop: { x: 100, y: 50, w: 300 })
           expect(response).to redirect_to(user_path(user))
         end
 
         it "accepts a selection that touches the bottom right corner" do
           upload(200, 0, 600)
-          expect(ImageSampler).to have_received(:generate_uploaded_avatar).with(kind_of(String), user.id, crop: { x: 200, y: 0, w: 600 })
+          expect(ImageSampler).to have_received(:uploaded_avatar_files).with(kind_of(String), crop: { x: 200, y: 0, w: 600 })
         end
 
         [
@@ -265,15 +271,23 @@ RSpec.describe Maintenance::User::AvatarsController do
             upload(x, y, w)
             expect(response).to redirect_to(new_maintenance_user_avatar_path)
             expect(flash[:notice]).to include("Invalid crop selection")
-            expect(ImageSampler).not_to have_received(:generate_uploaded_avatar)
+            expect(ImageSampler).not_to have_received(:uploaded_avatar_files)
           end
         end
 
         it "allows a small selection when the image itself is small" do
           allow(VipsCommand).to receive(:dimensions).and_return([40, 40])
           upload(0, 0, 40)
-          expect(ImageSampler).to have_received(:generate_uploaded_avatar).with(kind_of(String), user.id, crop: { x: 0, y: 0, w: 40 })
+          expect(ImageSampler).to have_received(:uploaded_avatar_files).with(kind_of(String), crop: { x: 0, y: 0, w: 40 })
         end
+      end
+
+      it "refuses an upload once the counted attempts pass the hourly limit" do
+        limit = Maintenance::User::AvatarsController::UPLOAD_LIMIT
+        allow(RateLimiter).to receive(:new).and_return(instance_double(RateLimiter, hit!: limit + 1))
+        post maintenance_user_avatar_path, params: { avatar_file: image }
+        expect(response).to have_http_status(:too_many_requests)
+        expect(ImageSampler).not_to have_received(:uploaded_avatar_files)
       end
 
       it "rejects a request with no file" do
@@ -297,7 +311,7 @@ RSpec.describe Maintenance::User::AvatarsController do
 
         it "accepts a file a little over the limit" do
           upload_of_size(limit + leeway)
-          expect(ImageSampler).to have_received(:generate_uploaded_avatar)
+          expect(ImageSampler).to have_received(:uploaded_avatar_files)
           expect(response).to redirect_to(user_path(user))
         end
 
@@ -305,13 +319,13 @@ RSpec.describe Maintenance::User::AvatarsController do
           upload_of_size(4.1.megabytes.to_i)
           expect(response).to redirect_to(new_maintenance_user_avatar_path)
           expect(flash[:notice]).to eq("That image is 4.1 MB, but avatars can be at most 3 MB. Try a smaller or more compressed version.")
-          expect(ImageSampler).not_to have_received(:generate_uploaded_avatar)
+          expect(ImageSampler).not_to have_received(:uploaded_avatar_files)
         end
 
         it "rejects a file one byte past the leeway" do
           upload_of_size(limit + leeway + 1)
           expect(flash[:notice]).to include("at most 3 MB")
-          expect(ImageSampler).not_to have_received(:generate_uploaded_avatar)
+          expect(ImageSampler).not_to have_received(:uploaded_avatar_files)
         end
       end
 
@@ -320,7 +334,7 @@ RSpec.describe Maintenance::User::AvatarsController do
         post maintenance_user_avatar_path, params: { avatar_file: image }
         expect(response).to redirect_to(new_maintenance_user_avatar_path)
         expect(flash[:notice]).to include("pixels wide or tall")
-        expect(ImageSampler).not_to have_received(:generate_uploaded_avatar)
+        expect(ImageSampler).not_to have_received(:uploaded_avatar_files)
       end
 
       it "rejects a file that is not an image" do
@@ -332,7 +346,7 @@ RSpec.describe Maintenance::User::AvatarsController do
       end
 
       it "reports an image that can't be processed" do
-        allow(ImageSampler).to receive(:generate_uploaded_avatar).and_raise(VipsCommand::Error, "broken")
+        allow(ImageSampler).to receive(:uploaded_avatar_files).and_raise(VipsCommand::Error, "broken")
         post maintenance_user_avatar_path, params: { avatar_file: image }
         expect(response).to redirect_to(new_maintenance_user_avatar_path)
         expect(flash[:notice]).to include("couldn't be read")

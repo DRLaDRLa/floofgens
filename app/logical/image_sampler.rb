@@ -64,24 +64,25 @@ module ImageSampler
   # Uploads are cropped from a copy shrunk to fit this box, so a huge image is never decoded at full size.
   UPLOADED_AVATAR_WORKING_SIZE = 2048
 
-  # Makes a square avatar from an image the user uploaded. Stored in the same place as
-  # a cropped avatar, so it is served the same way.
+  # Makes a square avatar from an image the user uploaded, as { "jpg" => Tempfile, "webp" => Tempfile }.
+  # The caller stores them (User#use_uploaded_avatar!) and closes them.
   # crop is { x:, y:, w: } in pixels of the image as browsers display it (EXIF orientation
   # applied), as checked by the caller. Without it, the image is cropped around the centre.
-  def generate_uploaded_avatar(file_path, user_id, crop: nil)
+  def uploaded_avatar_files(file_path, crop: nil)
     size = Danbooru.config.small_image_width
     resized = crop ? crop_uploaded_avatar(file_path, crop, size) : VipsCommand.thumbnail(file_path, size, height: size, crop: :centre)
 
     jpg = Tempfile.new(["avatar", ".jpg"], binmode: true)
     webp = Tempfile.new(["avatar", ".webp"], binmode: true)
     VipsCommand.save("jpegsave", resized.path, jpg.path, background: calc_background_color, **JPEG_OPTIONS)
-    VipsCommand.save("webpsave", resized.path, webp.path, **WEBP_OPTIONS)
-
-    sm = Danbooru.config.storage_manager
-    sm.store_avatar(jpg, user_id, "jpg")
-    sm.store_avatar(webp, user_id, "webp")
+    # Photos from phones carry EXIF data such as the location, which must not be published
+    VipsCommand.save("webpsave", resized.path, webp.path, **WEBP_OPTIONS, strip: true)
+    { "jpg" => jpg, "webp" => webp }
+  rescue StandardError
+    [jpg, webp].each { |file| file&.close! }
+    raise
   ensure
-    [resized, jpg, webp].each { |file| file&.close! }
+    resized&.close!
   end
 
   # Returns a size x size .v Tempfile of the selected square.

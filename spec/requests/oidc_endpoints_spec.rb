@@ -617,6 +617,26 @@ RSpec.describe "OIDC endpoints" do
       user = create(:user, avatar_id: avatar_post.id)
       expect(picture_for(user)).to be_present
     end
+
+    context "with an uploaded avatar" do
+      let(:user) do
+        create(:user).tap { |u| u.update_columns(avatar_id: nil, bit_prefs: u.bit_prefs | User.flag_value_for("has_cropped_avatar")) }
+      end
+
+      it "returns the uploaded image" do
+        expect(picture_for(user)).to include("/#{user.id}.jpg?t=")
+      end
+
+      it "suppresses it when the user has safe mode on" do
+        user.update!(enable_safe_mode: true)
+        expect(picture_for(user)).to be_nil
+      end
+
+      it "suppresses it when site safe mode is on" do
+        allow(Danbooru.config.custom_configuration).to receive(:safe_mode?).and_return(true)
+        expect(picture_for(user)).to be_nil
+      end
+    end
   end
 
   describe "email_verified claim" do

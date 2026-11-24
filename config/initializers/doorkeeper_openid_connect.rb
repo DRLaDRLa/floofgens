@@ -45,10 +45,12 @@ Doorkeeper::OpenidConnect.configure do
     end
 
     normal_claim :picture do |resource_owner|
-      next nil unless resource_owner.avatar_id
+      next nil unless resource_owner.has_avatar?
 
       safe_mode = CurrentSite.safe_mode? || resource_owner.enable_safe_mode?
       tag_locked = CurrentSite.tag_locked?
+      # An uploaded avatar has no post rating to check, so filtered sites leave it out.
+      next nil if resource_owner.has_uploaded_avatar? && (safe_mode || tag_locked)
       avatar_post = Post.find_by(id: resource_owner.avatar_id) if safe_mode || tag_locked || !resource_owner.has_cropped_avatar?
       next nil if safe_mode && avatar_post&.rating != "s"
       next nil if tag_locked && (avatar_post.nil? || avatar_post.siteblocked?)

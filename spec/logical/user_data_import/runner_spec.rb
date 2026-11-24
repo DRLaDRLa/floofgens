@@ -304,6 +304,14 @@ RSpec.describe UserDataImport::Runner do
       expect(user.reload).to have_attributes(profile_about: "Backup about", profile_artinfo: "Backup art")
     end
 
+    it "keeps an uploaded avatar when filling empty fields" do
+      user.update_columns(avatar_id: nil, bit_prefs: user.bit_prefs | User.flag_value_for("has_cropped_avatar"))
+      import = run_import(create_import(user, backup, profile: true))
+
+      expect(user.reload.has_uploaded_avatar?).to be(true)
+      expect(import.results.dig("profile", "avatar")).to eq("kept_existing")
+    end
+
     it "skips avatars whose post is missing or deleted" do
       import = run_import(create_import(user, parse_backup(avatar: { "post_id" => 190_899, "cropped" => false }), profile: true))
       expect(import.results.dig("profile", "avatar")).to eq("post_missing")

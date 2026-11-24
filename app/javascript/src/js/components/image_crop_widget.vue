@@ -74,12 +74,16 @@ export default {
     sourceSel() {
       if (!this.selection) return null;
       const s = this.scale;
-      return {
-        x: Math.round(this.selection.x * s),
-        y: Math.round(this.selection.y * s),
-        w: Math.round(this.selection.w * s),
-        h: Math.round(this.selection.h * s),
-      };
+      const x = Math.round(this.selection.x * s);
+      const y = Math.round(this.selection.y * s);
+      // Rounded separately, the far edge can land a pixel past the image
+      let w = Math.min(Math.round(this.selection.w * s), this.naturalWidth - x);
+      let h = Math.min(Math.round(this.selection.h * s), this.naturalHeight - y);
+      if (this.aspectRatio) {
+        w = Math.min(w, Math.round(h * this.aspectRatio));
+        h = Math.round(w / this.aspectRatio);
+      }
+      return { x, y, w, h };
     },
 
     sizeWarning() {
@@ -173,6 +177,11 @@ export default {
 
     // Clamp a selection to the image bounds
     clampSel(x, y, w, h) {
+      if (this.aspectRatio) {
+        // Shrink to fit first, so clamping each side below can't break the ratio
+        w = Math.min(w, this.displayW, this.displayH * this.aspectRatio);
+        h = w / this.aspectRatio;
+      }
       x = Math.max(0, Math.min(x, this.displayW - w));
       y = Math.max(0, Math.min(y, this.displayH - h));
       w = Math.min(w, this.displayW - x);

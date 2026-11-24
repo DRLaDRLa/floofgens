@@ -84,6 +84,13 @@ RSpec.describe AvatarCleanupJob do
         expect(user.reload.has_cropped_avatar?).to be false
       end
 
+      it "keeps an avatar uploaded after the avatar post was destroyed" do
+        user.update_columns(avatar_id: nil)
+        described_class.new.perform(user.id, true)
+        expect(storage).not_to have_received(:delete_avatar)
+        expect(user.reload.has_uploaded_avatar?).to be true
+      end
+
       it "does not restore flags changed while the job ran" do
         allow(storage).to receive(:delete_avatar) do
           User.where(id: user.id).update_all(["bit_prefs = bit_prefs & ~?", other])

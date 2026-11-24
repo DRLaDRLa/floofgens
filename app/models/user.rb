@@ -501,26 +501,32 @@ class User < ApplicationRecord
       avatar_id.present? || has_cropped_avatar?
     end
 
-    # Call after ImageSampler.generate_uploaded_avatar has stored the image.
+    # Stores the files from ImageSampler.uploaded_avatar_files and switches to them.
+    # Publishing, removal, cropping and cleanup all hold this user's row lock, so a late
+    # job can't delete or overwrite the new image.
     # Skips the avatar_id callback, which would clear the flag and delete the new image.
-    def use_uploaded_avatar!
-      flag = User.flag_value_for("has_cropped_avatar")
-      User.where(id: id).update_all(["avatar_id = NULL, bit_prefs = bit_prefs | ?, updated_at = ?", flag, Time.current])
+    def use_uploaded_avatar!(files)
+      with_lock do
+        sm = Danbooru.config.storage_manager
+        files.each { |ext, file| sm.store_avatar(file, id, ext) }
+        flag = User.flag_value_for("has_cropped_avatar")
+        update_columns(avatar_id: nil, bit_prefs: bit_prefs | flag, updated_at: Time.current)
+      end
       UserAvatarUrlCache.invalidate(id)
-      reload
     end
 
     # Removes the avatar post and any custom image, whether it was cropped or uploaded.
     def remove_avatar!
-      if avatar_id.present?
-        update!(avatar_id: nil) # clear_cropped_avatar_on_avatar_change deletes the image
-      elsif has_cropped_avatar?
-        flag = User.flag_value_for("has_cropped_avatar")
-        User.where(id: id).update_all(["bit_prefs = bit_prefs & ~?, updated_at = ?", flag, Time.current])
-        UserAvatarUrlCache.invalidate(id)
-        AvatarCleanupJob.perform_async(id)
-        reload
+      with_lock do
+        if avatar_id.present?
+          update!(avatar_id: nil) # clear_cropped_avatar_on_avatar_change deletes the image
+        elsif has_cropped_avatar?
+          flag = User.flag_value_for("has_cropped_avatar")
+          update_columns(bit_prefs: bit_prefs & ~flag, updated_at: Time.current)
+          AvatarCleanupJob.perform_async(id)
+        end
       end
+      UserAvatarUrlCache.invalidate(id)
     end
 
     def staff_cant_disable_dmail

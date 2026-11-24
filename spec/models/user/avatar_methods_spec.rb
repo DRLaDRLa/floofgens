@@ -46,9 +46,20 @@ RSpec.describe User do
   end
 
   describe "#use_uploaded_avatar!" do
+    let(:storage) { instance_spy(StorageManager) }
+    let(:files) { { "jpg" => instance_double(Tempfile), "webp" => instance_double(Tempfile) } }
+
+    before { allow(Danbooru.config.custom_configuration).to receive(:storage_manager).and_return(storage) }
+
+    it "stores the image files" do
+      user.use_uploaded_avatar!(files)
+      expect(storage).to have_received(:store_avatar).with(files["jpg"], user.id, "jpg")
+      expect(storage).to have_received(:store_avatar).with(files["webp"], user.id, "webp")
+    end
+
     it "clears the avatar post and sets the image flag" do
       user.update_columns(avatar_id: avatar_post.id)
-      user.use_uploaded_avatar!
+      user.use_uploaded_avatar!(files)
       expect(user.avatar_id).to be_nil
       expect(user.has_cropped_avatar?).to be true
     end
@@ -56,18 +67,18 @@ RSpec.describe User do
     it "keeps the other flags" do
       other = User.flag_value_for("can_approve_posts")
       user.update_columns(bit_prefs: other)
-      user.use_uploaded_avatar!
+      user.use_uploaded_avatar!(files)
       expect(user.can_approve_posts?).to be true
     end
 
     it "does not enqueue a cleanup" do
       user.update_columns(avatar_id: avatar_post.id, bit_prefs: user.bit_prefs | cropped)
-      expect { user.use_uploaded_avatar! }.not_to enqueue_sidekiq_job(AvatarCleanupJob)
+      expect { user.use_uploaded_avatar!(files) }.not_to enqueue_sidekiq_job(AvatarCleanupJob)
     end
 
     it "invalidates the avatar URL cache" do
       allow(UserAvatarUrlCache).to receive(:invalidate)
-      user.use_uploaded_avatar!
+      user.use_uploaded_avatar!(files)
       expect(UserAvatarUrlCache).to have_received(:invalidate).with(user.id)
     end
   end

@@ -43,6 +43,21 @@ RSpec.describe AvatarCropJob do
       end
     end
 
+    context "when the avatar is cleared before the crop is published" do
+      before do
+        allow(Post).to receive(:find).and_wrap_original do |original, *args|
+          User.where(id: user.id).update_all(avatar_id: nil)
+          original.call(*args)
+        end
+      end
+
+      it "leaves the image and the flag alone" do
+        perform
+        expect(ImageSampler).not_to have_received(:generate_avatar_crop)
+        expect(user.reload.has_cropped_avatar?).to be false
+      end
+    end
+
     context "when the user does not exist" do
       it "does not raise an error" do
         expect { perform(user_id: 0) }.not_to raise_error
