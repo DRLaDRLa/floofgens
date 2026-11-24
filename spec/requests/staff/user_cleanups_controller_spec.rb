@@ -65,6 +65,17 @@ RSpec.describe Staff::UserCleanupsController do
         expect(flash[:notice]).to eq("User avatar cleared")
         expect(target.reload.avatar_id).to be_nil
       end
+
+      it "clears an uploaded avatar" do
+        sign_in_as moderator
+        flag = User.flag_value_for("has_cropped_avatar")
+        target.update_columns(avatar_id: nil, bit_prefs: target.bit_prefs | flag)
+
+        expect do
+          post clear_avatar_staff_user_cleanup_path(target)
+        end.to enqueue_sidekiq_job(AvatarCleanupJob).with(target.id)
+        expect(target.reload.has_avatar?).to be false
+      end
     end
   end
 

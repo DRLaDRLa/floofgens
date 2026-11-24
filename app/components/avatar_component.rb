@@ -23,17 +23,30 @@ class AvatarComponent < ViewComponent::Base
 
   def article_attributes
     klass = %w[thumbnail avatar no-stats placeholder]
-    klass << "no-render" if user.avatar_id.nil?
+    klass << "no-render" unless user.has_avatar?
+
+    data = {
+      "id": post_id,
+      "initial": (user.name.presence || "?")[0].upcase,
+      "user-id": user.id,
+      "user-hash": user.updated_at.to_i,
+      "has-cropped-avatar": user.has_cropped_avatar?,
+    }
+    data.merge!(uploaded_avatar_urls) if user.has_uploaded_avatar?
 
     {
       class: klass.join(" "),
-      data: {
-        "id": post_id,
-        "initial": (user.name.presence || "?")[0].upcase,
-        "user-id": user.id,
-        "user-hash": user.updated_at.to_i,
-        "has-cropped-avatar": user.has_cropped_avatar?,
-      },
+      data: data,
+    }
+  end
+
+  # There is no post to take the URL from, so the client gets it from here.
+  def uploaded_avatar_urls
+    sm = Danbooru.config.storage_manager
+    timestamp = user.updated_at.to_i
+    {
+      "avatar-jpg": sm.avatar_url(user.id, "jpg", timestamp: timestamp),
+      "avatar-webp": sm.avatar_url(user.id, "webp", timestamp: timestamp),
     }
   end
 end

@@ -33,6 +33,15 @@ RSpec.describe UserAvatarUrlCache do
       ])
     end
 
+    it "returns the stored URLs for an uploaded avatar" do
+      sm = Danbooru.config.storage_manager
+      user = build(:user, avatar_id: nil, bit_prefs: User.flag_value_for("has_cropped_avatar"), updated_at: Time.at(1_000_000))
+      expect(UserAvatarUrlCache.get(user)).to eq([
+        sm.avatar_url(user.id, "webp", timestamp: user.updated_at.to_i),
+        sm.avatar_url(user.id, "jpg", timestamp: user.updated_at.to_i),
+      ])
+    end
+
     it "caches the preview URL for an uncropped avatar" do
       user = create(:user, avatar_id: post.id)
 

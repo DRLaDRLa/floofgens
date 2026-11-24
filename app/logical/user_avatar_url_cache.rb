@@ -9,10 +9,10 @@ module UserAvatarUrlCache
   end
 
   # Returns the JPEG URL for the navbar avatar, or nil if unavailable.
-  # For cropped avatars, computes inline with no query. For uncropped avatars,
+  # For cropped and uploaded avatars, computes inline with no query. For uncropped avatars,
   # caches the post's preview URL to avoid loading the full post on every request.
   def self.get(user)
-    return nil if user.blank? || user.avatar_id.blank?
+    return nil if user.blank?
 
     if user.has_cropped_avatar?
       sm = Danbooru.config.storage_manager
@@ -20,6 +20,8 @@ module UserAvatarUrlCache
         sm.avatar_url(user.id, "webp", timestamp: user.updated_at.to_i),
         sm.avatar_url(user.id, "jpg", timestamp: user.updated_at.to_i),
       ]
+    elsif user.avatar_id.blank?
+      nil
     else
       Cache.fetch(key(user.id), expires_in: CACHE_TTL) do
         post = Post.find_by(id: user.avatar_id)

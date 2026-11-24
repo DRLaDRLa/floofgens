@@ -6,7 +6,7 @@ module Staff
     before_action :load_user
 
     def show
-      @has_avatar = @user.avatar_id.present?
+      @has_avatar = @user.has_avatar?
       @has_profile_info = @user.profile_about.present? || @user.profile_artinfo.present?
 
       # Don't recount these, for performance reasons.
@@ -19,7 +19,7 @@ module Staff
     end
 
     def clear_avatar
-      @user.update!(avatar_id: nil)
+      @user.remove_avatar!
       ModAction.log(:user_avatar_clear, { user_id: @user.id })
       redirect_to staff_user_cleanup_path(@user), notice: "User avatar cleared"
     end

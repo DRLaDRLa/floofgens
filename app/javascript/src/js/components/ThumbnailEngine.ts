@@ -102,6 +102,43 @@ export default class ThumbnailEngine {
   }
 
   /**
+   * Renders an avatar the user uploaded, which has no post behind it.
+   * Mirrors the markup of a post avatar, but links to the user's profile.
+   * @param {number} userID ID of the avatar's owner
+   * @param {string} jpegUrl URL of the JPEG version
+   * @param {string} webpUrl URL of the WebP version
+   * @returns {JQuery<HTMLElement>} Rendered avatar element
+   */
+  public static renderUploadedAvatar (userID: number, jpegUrl: string, webpUrl: string): JQuery<HTMLElement> {
+    const article = document.createElement("article");
+    article.className = "thumbnail no-stats no-type-badges inline avatar uploaded-avatar";
+    article.setAttribute("data-user-id", String(userID));
+
+    const link = document.createElement("a");
+    link.className = "thm-link";
+    link.href = `/users/${userID}`;
+    article.appendChild(link);
+
+    const picture = document.createElement("picture");
+    if (Settings.Posts.webp_enabled && webpUrl) {
+      const source = document.createElement("source");
+      source.srcset = webpUrl;
+      source.type = "image/webp";
+      picture.appendChild(source);
+    }
+
+    const img = document.createElement("img");
+    img.src = jpegUrl;
+    img.alt = "User avatar";
+    img.setAttribute("loading", "lazy");
+    picture.appendChild(img);
+    link.appendChild(picture);
+
+    this._counter++;
+    return $(article);
+  }
+
+  /**
    * Renders a placeholder thumbnail element
    * @returns {JQuery<HTMLElement>} Rendered placeholder thumbnail element
    */

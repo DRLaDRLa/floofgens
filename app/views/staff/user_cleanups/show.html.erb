@@ -4,7 +4,7 @@
   <% if @has_avatar %>
     <section class="box-section">
       <h2>Clear Avatar</h2>
-      <p>Remove the user's avatar, including the cropped version if present.</p>
+      <p>Remove the user's avatar, including any cropped or uploaded image.</p>
       <%= button_to "Clear Avatar",
             clear_avatar_staff_user_cleanup_path(@user),
             class: "st-button",

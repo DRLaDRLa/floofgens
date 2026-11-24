@@ -1,0 +1,48 @@
+<div id="c-maintenance-user-avatars">
+  <div id="a-new">
+    <h1>Upload Avatar</h1>
+
+    <% avatar_url = UserAvatarUrlCache.get(CurrentUser.user) %>
+    <% if avatar_url %>
+      <p>Your current avatar:</p>
+      <picture class="avatar-upload-current">
+        <source srcset="<%= avatar_url[0] %>" type="image/webp">
+        <%= image_tag(avatar_url[1], alt: "Current avatar", width: 128, height: 128) %>
+      </picture>
+    <% end %>
+
+    <ul>
+      <li>JPEG, PNG, GIF, or WebP, up to <%= Maintenance::User::AvatarsController::UPLOAD_MAX_FILE_SIZE / 1.megabyte %> MB.</li>
+      <li>After choosing an image, drag a square over the part you want. If you don't, the center is used. Animated images use their first frame.</li>
+      <li>Uploaded avatars aren't posts, so they aren't hidden by ratings or blacklists. Keep yours safe for work.</li>
+      <li>This replaces any avatar post you have set.</li>
+    </ul>
+
+    <%= form_tag(maintenance_user_avatar_path, multipart: true, class: "simple_form") do %>
+      <div class="input">
+        <label for="avatar_file">Image</label>
+        <%= file_field_tag :avatar_file, accept: "image/jpeg,image/png,image/gif,image/webp" %>
+      </div>
+
+      <div id="avatar-upload-crop-widget" data-min-size="<%= Maintenance::User::AvatarsController::UPLOAD_MIN_CROP %>"></div>
+      <p class="image-crop-widget-hint" id="avatar-upload-crop-hint" hidden>Drag to select the part to use as your avatar.</p>
+      <%= hidden_field_tag :avatar_crop_x, nil, id: "avatar_crop_x" %>
+      <%= hidden_field_tag :avatar_crop_y, nil, id: "avatar_crop_y" %>
+      <%= hidden_field_tag :avatar_crop_w, nil, id: "avatar_crop_w" %>
+
+      <div class="input">
+        <%= submit_tag "Upload", class: "st-button" %>
+      </div>
+    <% end %>
+
+    <% if CurrentUser.user.has_avatar? %>
+      <%= button_to "Remove avatar",
+            maintenance_user_avatar_path,
+            method: :delete,
+            class: "st-button",
+            data: { confirm: "Remove your avatar?" } %>
+    <% end %>
+  </div>
+</div>
+
+<% content_for(:page_title) { "Upload Avatar" } %>

@@ -2,16 +2,21 @@
 <!-- Profile -->
 <settings-group name="profile">Profile</settings-group>
 
-<settings-entry group="profile" class="<%= @user.avatar_id.present? ? "with-buttons" : "" %>" search="update change user avatar profile image pfp crop">
+<settings-entry group="profile" class="with-buttons" search="update change user avatar profile image pfp crop upload">
   <settings-head><%= form.label :avatar_id, "Avatar Post ID" %></settings-head>
   <settings-body>
     <%= form.input_field :avatar_id, as: :string, label: false %>
     <% if @user.avatar_id.present? %>
       <%= link_to "Crop", edit_maintenance_user_avatar_path, class: "st-button" %>
     <% end %>
+    <%= link_to "Upload", new_maintenance_user_avatar_path, class: "st-button" %>
   </settings-body>
   <settings-hint>
-    The image with this ID will be set as your avatar.
+    <% if @user.has_uploaded_avatar? %>
+      You're using an uploaded image as your avatar. Entering a post ID will replace it.
+    <% else %>
+      The image with this ID will be set as your avatar, or you can upload one from your device.
+    <% end %>
   </settings-hint>
 </settings-entry>
 

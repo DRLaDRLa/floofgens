@@ -66,7 +66,18 @@ export default class DeferredPostLoader {
       if ($placeholder.hasClass("no-render")) continue;
 
       const postID = $placeholder.data("id");
-      if (!postID) continue;
+      if (!postID) {
+        // Uploaded avatars have an image but no post
+        const userID = $placeholder.data("user-id"),
+          uploadedJpg = $placeholder.data("avatar-jpg");
+        if (!userID || !uploadedJpg) continue;
+        const thumbnail = ThumbnailEngine.renderUploadedAvatar(userID, uploadedJpg, $placeholder.data("avatar-webp") || "");
+        if ($placeholder.data("initial"))
+          thumbnail.find("a.thm-link").attr("data-initial", $placeholder.data("initial"));
+        $placeholder.replaceWith(thumbnail);
+        counter++;
+        continue;
+      }
       const post = PostCache.get(postID);
       if (!post) continue;
 

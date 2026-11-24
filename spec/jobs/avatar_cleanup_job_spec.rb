@@ -33,6 +33,18 @@ RSpec.describe AvatarCleanupJob do
       end
     end
 
+    context "when the user has an uploaded avatar" do
+      before do
+        flag = User.flag_value_for("has_cropped_avatar")
+        user.update_columns(avatar_id: nil, bit_prefs: user.bit_prefs | flag)
+      end
+
+      it "skips deletion" do
+        perform
+        expect(storage).not_to have_received(:delete_avatar)
+      end
+    end
+
     context "when the user has an avatar_id but no cropped avatar" do
       before { user.update_columns(avatar_id: 1) }
 

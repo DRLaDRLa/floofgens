@@ -29,6 +29,27 @@ RSpec.describe AvatarComponent do
       end
     end
 
+    describe "uploaded avatars" do
+      let(:uploader) { create(:user, has_cropped_avatar: true) }
+
+      it "does not include no-render" do
+        expect(component(uploader).send(:article_attributes)[:class]).not_to include("no-render")
+      end
+
+      it "includes the image URLs" do
+        sm = Danbooru.config.storage_manager
+        data = component(uploader).send(:article_attributes)[:data]
+        expect(data[:"avatar-jpg"]).to eq(sm.avatar_url(uploader.id, "jpg", timestamp: uploader.updated_at.to_i))
+        expect(data[:"avatar-webp"]).to eq(sm.avatar_url(uploader.id, "webp", timestamp: uploader.updated_at.to_i))
+      end
+
+      it "leaves the image URLs out for an avatar post" do
+        post = create(:post)
+        data = component(create(:user, avatar_id: post.id)).send(:article_attributes)[:data]
+        expect(data).not_to have_key(:"avatar-jpg")
+      end
+    end
+
     describe "data attributes" do
       it "sets id to the user's avatar_id" do
         post = create(:post)

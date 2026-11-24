@@ -61,6 +61,55 @@ module ImageSampler
     [image, cropped, resized, jpg, webp].each { |file| file&.close! }
   end
 
+  # Uploads are cropped from a copy shrunk to fit this box, so a huge image is never decoded at full size.
+  UPLOADED_AVATAR_WORKING_SIZE = 2048
+
+  # Makes a square avatar from an image the user uploaded. Stored in the same place as
+  # a cropped avatar, so it is served the same way.
+  # crop is { x:, y:, w: } in pixels of the image as browsers display it (EXIF orientation
+  # applied), as checked by the caller. Without it, the image is cropped around the centre.
+  def generate_uploaded_avatar(file_path, user_id, crop: nil)
+    size = Danbooru.config.small_image_width
+    resized = crop ? crop_uploaded_avatar(file_path, crop, size) : VipsCommand.thumbnail(file_path, size, height: size, crop: :centre)
+
+    jpg = Tempfile.new(["avatar", ".jpg"], binmode: true)
+    webp = Tempfile.new(["avatar", ".webp"], binmode: true)
+    VipsCommand.save("jpegsave", resized.path, jpg.path, background: calc_background_color, **JPEG_OPTIONS)
+    VipsCommand.save("webpsave", resized.path, webp.path, **WEBP_OPTIONS)
+
+    sm = Danbooru.config.storage_manager
+    sm.store_avatar(jpg, user_id, "jpg")
+    sm.store_avatar(webp, user_id, "webp")
+  ensure
+    [resized, jpg, webp].each { |file| file&.close! }
+  end
+
+  # Returns a size x size .v Tempfile of the selected square.
+  def crop_uploaded_avatar(file_path, crop, size)
+    width, height = oriented_dimensions(file_path)
+    limit = UPLOADED_AVATAR_WORKING_SIZE
+    # thumbnail applies the EXIF orientation, so the selection lines up with the working copy
+    working = VipsCommand.thumbnail(file_path, limit, height: limit, size: :down)
+
+    # Flooring keeps the scaled selection inside the working copy, whose sides vips rounds.
+    factor = [limit.to_f / [width, height].max, 1.0].min
+    x = (crop[:x] * factor).floor
+    y = (crop[:y] * factor).floor
+    w = [(crop[:w] * factor).floor, (width * factor).floor - x, (height * factor).floor - y].min
+    w = [w, 1].max
+
+    cropped = Tempfile.new(["avatar", ".v"], binmode: true)
+    VipsCommand.operation("crop", working.path, cropped.path, x, y, w, w, timeout: VipsCommand::SAVE_TIMEOUT)
+    resized = Tempfile.new(["avatar", ".v"], binmode: true)
+    VipsCommand.operation("resize", cropped.path, resized.path, size.to_f / w, timeout: VipsCommand::SAVE_TIMEOUT)
+    resized
+  rescue StandardError
+    resized&.close!
+    raise
+  ensure
+    [working, cropped].each { |file| file&.close! }
+  end
+
   def generate_replacement_images(replacement)
     return unless File.exist?(replacement.replacement_file_path)
     return if replacement.file_ext == "swf" # Cannot generate any kind of thumbnail

@@ -492,6 +492,37 @@ class User < ApplicationRecord
       AvatarCleanupJob.perform_async(id)
     end
 
+    # An uploaded avatar is a custom avatar image with no post behind it.
+    def has_uploaded_avatar?
+      avatar_id.nil? && has_cropped_avatar?
+    end
+
+    def has_avatar?
+      avatar_id.present? || has_cropped_avatar?
+    end
+
+    # Call after ImageSampler.generate_uploaded_avatar has stored the image.
+    # Skips the avatar_id callback, which would clear the flag and delete the new image.
+    def use_uploaded_avatar!
+      flag = User.flag_value_for("has_cropped_avatar")
+      User.where(id: id).update_all(["avatar_id = NULL, bit_prefs = bit_prefs | ?, updated_at = ?", flag, Time.current])
+      UserAvatarUrlCache.invalidate(id)
+      reload
+    end
+
+    # Removes the avatar post and any custom image, whether it was cropped or uploaded.
+    def remove_avatar!
+      if avatar_id.present?
+        update!(avatar_id: nil) # clear_cropped_avatar_on_avatar_change deletes the image
+      elsif has_cropped_avatar?
+        flag = User.flag_value_for("has_cropped_avatar")
+        User.where(id: id).update_all(["bit_prefs = bit_prefs & ~?, updated_at = ?", flag, Time.current])
+        UserAvatarUrlCache.invalidate(id)
+        AvatarCleanupJob.perform_async(id)
+        reload
+      end
+    end
+
     def staff_cant_disable_dmail
       self.disable_user_dmails = false if is_staff?
     end

@@ -7,9 +7,9 @@ class AvatarCleanupJob < ApplicationJob
   def perform(user_id, force = false) # rubocop:disable Style/OptionalBooleanParameter
     user = User.find(user_id)
 
-    # Don't perform cleanup if the user has a cropped avatar set.
+    # Don't perform cleanup if the user has a cropped or uploaded avatar set.
     # Otherwise, we risk deleting the newly changed avatar if this job runs late.
-    return if !force && user.avatar_id.present? && user.has_cropped_avatar?
+    return if !force && user.has_cropped_avatar?
 
     sm = Danbooru.config.storage_manager
     sm.delete_avatar(user_id, "jpg")

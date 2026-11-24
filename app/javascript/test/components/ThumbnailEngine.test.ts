@@ -298,6 +298,32 @@ describe("ThumbnailEngine", () => {
     });
   });
 
+  describe("renderUploadedAvatar", () => {
+    const JPG = "/data/avatars/7.jpg?t=123", WEBP = "/data/avatars/7.webp?t=123";
+
+    it("links to the user and shows the image", async () => {
+      const { ThumbnailEngine } = await load();
+      const el = ThumbnailEngine.renderUploadedAvatar(7, JPG, WEBP)[0];
+
+      expect(el.tagName).toBe("ARTICLE");
+      expect(el.classList).toContain("avatar");
+      expect(el.classList).toContain("uploaded-avatar");
+      expect(el.dataset.userId).toBe("7");
+
+      const link = el.querySelector<HTMLAnchorElement>("a.thm-link")!;
+      expect(link.getAttribute("href")).toBe("/users/7");
+      expect(link.querySelector("picture > source")!.getAttribute("srcset")).toBe(WEBP);
+      expect(link.querySelector("picture > img")!.getAttribute("src")).toBe(JPG);
+    });
+
+    it("leaves out the webp source when webp is disabled", async () => {
+      const { ThumbnailEngine } = await load({}, { webp_enabled: false });
+      const el = ThumbnailEngine.renderUploadedAvatar(7, JPG, WEBP)[0];
+      expect(el.querySelector("picture > source")).toBeNull();
+      expect(el.querySelector("picture > img")!.getAttribute("src")).toBe(JPG);
+    });
+  });
+
   describe("renderPlaceholder", () => {
     it("returns an empty placeholder article", async () => {
       const { ThumbnailEngine } = await load();
