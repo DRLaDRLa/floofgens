@@ -83,6 +83,22 @@ RSpec.describe User do
     end
   end
 
+  describe "changing the avatar post" do
+    it "clears an image uploaded after this copy of the user was loaded" do
+      stale = User.find(user.id)
+      give_uploaded_avatar
+      expect { stale.update!(avatar_id: avatar_post.id) }.to enqueue_sidekiq_job(AvatarCleanupJob).with(user.id)
+      expect(user.reload).to have_attributes(avatar_id: avatar_post.id, has_cropped_avatar?: false)
+    end
+
+    it "clears a cropped avatar" do
+      user.update_columns(avatar_id: avatar_post.id, bit_prefs: user.bit_prefs | cropped)
+      expect { user.update!(avatar_id: create(:post).id) }.to enqueue_sidekiq_job(AvatarCleanupJob).with(user.id)
+      expect(user.has_cropped_avatar?).to be false
+      expect(user.reload.has_cropped_avatar?).to be false
+    end
+  end
+
   describe "#remove_avatar!" do
     it "clears an uploaded avatar and deletes the image" do
       give_uploaded_avatar

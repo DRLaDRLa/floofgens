@@ -484,11 +484,13 @@ class User < ApplicationRecord
 
       UserAvatarUrlCache.invalidate(id)
 
-      return unless has_cropped_avatar?
-
+      # Checked in the database rather than on this copy, which may predate an upload.
       flag = User.flag_value_for("has_cropped_avatar")
-      update_columns(bit_prefs: bit_prefs & ~flag)
+      cleared = User.where(id: id).where("bit_prefs & ? <> 0", flag).update_all(["bit_prefs = bit_prefs & ~?", flag])
+      return if cleared == 0
 
+      self[:bit_prefs] &= ~flag
+      clear_attribute_changes([:bit_prefs])
       AvatarCleanupJob.perform_async(id)
     end
 
