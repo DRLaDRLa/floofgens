@@ -260,6 +260,10 @@ module Danbooru
       1
     end
 
+    def upload_whitelists_request_forum_topic
+      nil
+    end
+
     # After a post receives this many comments, new comments will no longer bump the post in comment/index.
     def comment_threshold
       40

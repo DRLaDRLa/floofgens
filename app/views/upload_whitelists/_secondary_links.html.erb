@@ -3,6 +3,8 @@
   <% if CurrentUser.is_admin? %>
     <%= subnav_link_to "New", new_upload_whitelist_path %>
   <% end %>
-  <%= subnav_link_to "Requests", forum_topic_path(id: 22_269) %>
+  <% if Danbooru.config.upload_whitelists_request_forum_topic.present? %>
+    <%= subnav_link_to "Requests", forum_topic_path(id: Danbooru.config.upload_whitelists_request_forum_topic) %>
+  <% end %>
   <%= subnav_link_to "Help", help_page_path(id: "upload_whitelist") %>
 <% end %>
