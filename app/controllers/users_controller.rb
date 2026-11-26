@@ -1,6 +1,8 @@
 # frozen_string_literal: true
 
 class UsersController < ApplicationController
+  PRIVACY_MODE_DEFAULT = true
+
   respond_to :html, :json
   skip_before_action :api_check
   before_action :logged_in_only, only: %i[edit settings upload_limit update avatar_menu upload_tags]
@@ -46,6 +48,9 @@ class UsersController < ApplicationController
     end
     return access_denied("Signups are disabled") unless Danbooru.config.enable_signups?
     @user = User.new
+    # Bitflags have no uninitialized state to detect, so setting this in the config's
+    # customize_new_user would always override whatever the user actually selected on signup.
+    @user.enable_privacy_mode = PRIVACY_MODE_DEFAULT
     respond_with(@user)
   end
 
@@ -351,7 +356,13 @@ class UsersController < ApplicationController
     permitted_params += %i[enable_compact_uploader] if context != :create && CurrentUser.post_upload_count >= 10
     permitted_params += %i[name email] if context == :create
 
-    params.require(:user).permit(permitted_params)
+    permitted = params.require(:user).permit(permitted_params)
+
+    if !permitted.key?(:enable_privacy_mode) || permitted[:enable_privacy_mode].nil?
+      permitted[:enable_privacy_mode] = PRIVACY_MODE_DEFAULT
+    end
+
+    permitted
   end
 
   def search_params
