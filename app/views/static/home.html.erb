@@ -89,9 +89,11 @@
   <%= tag.meta(name: "description", content: Danbooru.config.description) %>
   <%= tag.meta(property: "og:site_name", content: Danbooru.config.app_name) %>
   <%= tag.meta(property: "og:title", content: Danbooru.config.app_name) %>
-    <%= tag.meta(property: "og:description", content: Danbooru.config.description) %>
+  <%= tag.meta(property: "og:description", content: Danbooru.config.description) %>
   <%= tag.meta(property: "og:url", content: root_url(host: Danbooru.config.hostname, protocol: "https")) %>
-  <%= tag.meta(property: "og:image", content: vite_asset_url("images/logo/default.svg")) %>
+  <%= tag.meta(property: "og:image", content: image_url("embed-logo.png")) %>
+  <%= tag.meta(property: "og:width", content: 1200) %>
+  <%= tag.meta(property: "og:height", content: 1200) %>
   <%= tag.meta(name: "canonical", content: root_url(host: Danbooru.config.hostname, protocol: "https")) %>
 
   <meta property="og:type" content="website">
@@ -100,5 +102,5 @@
   <meta name="twitter:card" content="summary">
   <%= tag.meta(name: "twitter:title", content: Danbooru.config.app_name) %>
   <%= tag.meta(name: "twitter:description", content: Danbooru.config.description) %>
-  <%= tag.meta(name: "twitter:image", content: vite_asset_url("images/logo/default.svg")) %>
+  <%= tag.meta(name: "twitter:image", content: image_url("embed-logo.png")) %>
 <%- end %>

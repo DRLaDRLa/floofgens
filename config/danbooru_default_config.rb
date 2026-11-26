@@ -17,7 +17,7 @@ module Danbooru
     end
 
     def description
-      "You like AI art, and we like AI art. Let's be friends!"
+      "Hi! You like AI art, and so do we. Let's be friends!"
     end
 
     def domain
