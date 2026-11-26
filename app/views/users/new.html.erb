@@ -9,17 +9,23 @@
 
     <%= f.input :time_zone, include_blank: false %>
 
+    <div class="session_form-toggle input">
+      <%= f.label :enable_privacy_mode, "Hide your favorites from public view" %>
+      <%= f.input_field :enable_privacy_mode, as: :boolean, class: "st-toggle" %>
+      <%= f.label :enable_privacy_mode, "!", class: "st-toggle", role: "switch" %>
+    </div>
+
     <%= render "application/turnstile" %>
-    <%= f.submit "Sign up", :data => { :disable_with => "Signing up..." } %>
+    <%= f.submit "Sign up", class: "st-button submit", :data => { :disable_with => "Signing up..." } %>
   <% end %>
   <section class="session_info">
     <h3>
       Already have an account? <%= link_to "Sign In.", new_session_path %>
     </h3>
-    <p>Please, read the <a href="/wiki_pages/floof:rules">site rules</a> before making an account.</p>
-    <p>You must confirm your email address, so you should only use one that you have access to.</p>
-    <p>This site is open to web crawlers, meaning that almost everything is public.</p>
-    <p>This includes your account name, favorites, uploads, and comments. Do not choose a name you don't want to be associated with.</p>
+    <p>Please read the <a href="/static/privacy">privacy policy</a> and <a href="/wiki_pages/floof:rules">site rules</a>
+    before making an account.</p>
+    <p>You must confirm your email address. Only use one that you have access to. Temporary emails are not allowed.</p>
+    <p>Your account name will be public. Do not choose a name you don't want to be associated with.</p>
     <p>Accounts have the same blacklist as guests by default. You will be able to modify your blacklist in the account settings.</p>
   </div>
 </div></div>
