@@ -105,10 +105,8 @@ class UploadService
     return true if upload.upload_as_pending?
     return false if upload.uploader.can_approve_posts?
     return true unless upload.uploader.upload_free?
-    # If a verified DNP artist has free uploads and they're the sole tagged DNP artist, let them skip pending.
-    # NOTE: any unlinked DNP artists will add a nil entry so != is always true.
-    return true if post.avoid_posting_tags.any? &&
-                   post.avoid_posting_tags.map { |avoid_post| avoid_post.artist.linked_user_id }.uniq != [post.uploader_id]
+    # A verified DNP artist may self-post, as long as every DNP entry on the post is theirs.
+    return true unless post.avoid_posting_tags.all? { |dnp| dnp.linked_user_id == upload.uploader_id }
     false
   end
 end
