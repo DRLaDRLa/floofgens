@@ -1,0 +1,101 @@
+@use "colors/theme";
+@use "base/breakpoints";
+
+div#deletion-examples {
+  display: grid;
+  grid-template-columns: auto min-content;
+
+  $thumb-size: 8.75rem;
+  $padding-size: 0.5rem;
+  $thumb-gap: 0.5rem;
+
+  max-width: ($thumb-size * 4) + ($thumb-gap * 3) + ($padding-size * 2);
+  box-sizing: border-box;
+
+  // Selected tab
+  &[data-action="artist"] button[data-action="artist"],
+  &[data-action="tags"] button[data-action="tags"],
+  &[data-action="favorites"] button[data-action="favorites"] {
+    background-color: theme.color("section");
+    pointer-events: none;
+  }
+
+  .thumbnail {
+    width: $thumb-size;
+    height: $thumb-size;
+  }
+
+  &-container {
+    grid-column: 1 / -1;
+
+    display: flex;
+    flex-direction: column;
+    padding-top: 0.25rem;
+
+    text-align: center;
+    font-weight: bold;
+
+    background: theme.color("danger");
+  }
+
+  &-list {
+    grid-column: 1 / -1;
+
+    display: flex;
+    overflow: scroll hidden;
+    flex-wrap: wrap; // Second row gets hidden
+    gap: $thumb-gap;
+
+    background: theme.color("danger");
+    padding: $padding-size;
+    border-radius: 0.25rem;
+
+    height: $thumb-size;
+
+    -ms-overflow-style: none; /* IE and Edge */
+    scrollbar-width: none; /* Firefox */
+    &::-webkit-scrollbar { display: none; }
+
+    @include breakpoints.below(30rem) {
+      height: unset;
+      min-height: calc(2* ($thumb-size));
+      justify-content: center;
+    }
+  }
+
+  // Toggle button
+  &-toggle {
+    display: flex;
+
+    button.st-button {
+      font-size: 0.85rem;
+      background: unset;
+      color: theme.color("text-muted");
+      svg {
+        width: 1rem;
+        height: 1rem;
+      }
+      #show { display: none; }
+      #hide { display: inline; }
+
+      &:hover {
+        color: theme.color("link-active");
+      }
+    }
+  }
+
+  &[data-status="error"] #deletion-examples-container {
+    justify-content: center;
+    align-items: center;
+  }
+
+  &[data-visible="false"] {
+    #deletion-examples-tabs, #deletion-examples-container { display: none; }
+    #deletion-examples-toggle {
+      button.st-button {
+        #show { display: inline; }
+        #hide { display: none; }
+      }
+    }
+  }
+}

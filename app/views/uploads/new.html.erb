@@ -9,6 +9,36 @@
       <br>
       Unsure what to tag your post
       with? <%= link_to "Tagging Checklist", help_page_path(id: "tagging_checklist") %></p>
+      <div
+          id="deletion-examples"
+          data-visible="<%= cookies[:deletion_examples_hidden] != "1" %>"
+          data-action="artist"
+          data-status="waiting"
+        >
+        <div id="deletion-examples-toggle">
+          <button
+            type="button"
+            class="st-button"
+            data-action="reveal"
+            aria-controls="deletion-examples"
+            aria-expanded="<%= cookies[:deletion_examples_hidden] != "1" %>"
+            aria-label="<%= cookies[:deletion_examples_hidden] == "1" ? "Show" : "Hide" %> Deletion Examples"
+            data-hotkey="postrec"
+          >
+            <span id="show">Show Deletion Examples</span>
+            <span id="hide">Hide Deletion Examples</span>
+            <%= svg_icon(:eye_off) %>
+          </button>
+        </div>
+        <div id="deletion-examples-container">
+          Examples of quality issues that will be rejected
+          <div id="deletion-examples-list">
+            <% @deletion_examples.each do |example| %>
+              <%= image_tag example, class: "thumbnail" %>
+            <% end %>
+          </div>
+        </div>
+      </div>
   </div>
   <script type="text/plain" id="upload-data" data-encoding="base64"><%= upload_data_base64 %></script>
   <div id="uploader"></div>
